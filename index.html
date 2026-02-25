@@ -3,24 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <title>Préparation SSO</title>
+
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
     <style>
         body {
             font-family: Arial, sans-serif;
             padding: 40px;
+            background-color: #f5f6f8;
         }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
         .box {
             padding: 20px;
             border: 1px solid #ccc;
-            background: #f7f7f7;
-            max-width: 600px;
+            background: #ffffff;
+            max-width: 650px;
+            border-radius: 6px;
         }
+
+        .row {
+            margin-bottom: 12px;
+        }
+
         .label {
             font-weight: bold;
-            width: 120px;
+            width: 130px;
             display: inline-block;
         }
+
         .value {
             color: #003366;
+            word-break: break-all;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background: #eef3ff;
+            border-left: 4px solid #003366;
         }
     </style>
 </head>
@@ -29,48 +53,95 @@
 <h2>Contexte d’arrivée SSO</h2>
 
 <div class="box">
-    <p><span class="label">Referrer :</span> <span id="referrer" class="value"></span></p>
-    <p><span class="label">cnx :</span> <span id="cnx" class="value"></span></p>
-    <p><span class="label">uuid :</span> <span id="uuid" class="value"></span></p>
+    <div class="row">
+        <span class="label">Referrer :</span>
+        <span id="referrer" class="value"></span>
+    </div>
+
+    <div class="row">
+        <span class="label">cnx :</span>
+        <span id="cnx" class="value"></span>
+    </div>
+
+    <div class="row">
+        <span class="label">uuid :</span>
+        <span id="uuid" class="value"></span>
+    </div>
+
+    <div class="status" id="status"></div>
 </div>
 
 <script>
 (function () {
 
+    // ============================
     // 1️⃣ Referrer
+    // ============================
     const referrer = document.referrer || "Aucun referrer détecté";
 
-    // 2️⃣ Paramètres URL
-    const urlParams = new URLSearchParams(window.location.search);
+    // ============================
+    // 2️⃣ Lecture paramètres URL (case-insensitive)
+    // ============================
+    const params = new URLSearchParams(window.location.search);
 
-    let cnx = urlParams.get("cnx") || "Non présent";
-    let uuid = urlParams.get("uuid") || "";
+    let cnx = "";
+    let uuid = "";
 
-    // Nettoyage éventuel du slash final
+    for (const [key, value] of params.entries()) {
+        if (key.toLowerCase() === "cnx") {
+            cnx = value;
+        }
+        if (key.toLowerCase() === "uuid") {
+            uuid = value;
+        }
+    }
+
+    // ============================
+    // 3️⃣ Nettoyage UUID
+    // ============================
     if (uuid.endsWith("/")) {
         uuid = uuid.slice(0, -1);
     }
 
-    // Validation simple UUID
+    // ============================
+    // 4️⃣ Validation UUID
+    // ============================
     const uuidRegex = /^[a-z0-9]+$/i;
-    if (!uuidRegex.test(uuid)) {
-        uuid = "UUID invalide";
+    let uuidValid = uuidRegex.test(uuid);
+
+    if (!uuidValid) {
+        uuid = uuid ? "UUID invalide" : "Non présent";
     }
 
-    // 3️⃣ Stockage sessionStorage
+    if (!cnx) {
+        cnx = "Non présent";
+    }
+
+    // ============================
+    // 5️⃣ Stockage session SSO
+    // ============================
     const ssoContext = {
         referrer: referrer,
         cnx: cnx,
-        uuid: uuid,
+        uuid: uuidValid ? uuid : null,
         timestamp: new Date().toISOString()
     };
 
     sessionStorage.setItem("SSO_CONTEXT", JSON.stringify(ssoContext));
 
-    // 4️⃣ Affichage dans la page
+    // ============================
+    // 6️⃣ Affichage
+    // ============================
     document.getElementById("referrer").textContent = referrer;
     document.getElementById("cnx").textContent = cnx;
     document.getElementById("uuid").textContent = uuid;
+
+    document.getElementById("status").textContent =
+        uuidValid
+            ? "Contexte SSO valide et stocké en session."
+            : "Contexte partiellement valide. Vérifier les paramètres.";
+
+    console.log("SSO_CONTEXT :", ssoContext);
 
 })();
 </script>
