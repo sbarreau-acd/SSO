@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Préparation SSO</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+        }
+        .box {
+            padding: 20px;
+            border: 1px solid #ccc;
+            background: #f7f7f7;
+            max-width: 600px;
+        }
+        .label {
+            font-weight: bold;
+            width: 120px;
+            display: inline-block;
+        }
+        .value {
+            color: #003366;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Contexte d’arrivée SSO</h2>
+
+<div class="box">
+    <p><span class="label">Referrer :</span> <span id="referrer" class="value"></span></p>
+    <p><span class="label">cnx :</span> <span id="cnx" class="value"></span></p>
+    <p><span class="label">uuid :</span> <span id="uuid" class="value"></span></p>
+</div>
+
+<script>
+(function () {
+
+    // 1️⃣ Referrer
+    const referrer = document.referrer || "Aucun referrer détecté";
+
+    // 2️⃣ Paramètres URL
+    const urlParams = new URLSearchParams(window.location.search);
+
+    let cnx = urlParams.get("cnx") || "Non présent";
+    let uuid = urlParams.get("uuid") || "";
+
+    // Nettoyage éventuel du slash final
+    if (uuid.endsWith("/")) {
+        uuid = uuid.slice(0, -1);
+    }
+
+    // Validation simple UUID
+    const uuidRegex = /^[a-z0-9]+$/i;
+    if (!uuidRegex.test(uuid)) {
+        uuid = "UUID invalide";
+    }
+
+    // 3️⃣ Stockage sessionStorage
+    const ssoContext = {
+        referrer: referrer,
+        cnx: cnx,
+        uuid: uuid,
+        timestamp: new Date().toISOString()
+    };
+
+    sessionStorage.setItem("SSO_CONTEXT", JSON.stringify(ssoContext));
+
+    // 4️⃣ Affichage dans la page
+    document.getElementById("referrer").textContent = referrer;
+    document.getElementById("cnx").textContent = cnx;
+    document.getElementById("uuid").textContent = uuid;
+
+})();
+</script>
+
+</body>
+</html>
