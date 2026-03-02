@@ -55,6 +55,13 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 </div>
 
 <div class="row">
+<span class="label">URL Portail :</span>
+<span id="portalUrl" class="value"></span>
+<button id="btnPortal" class="small-btn">Ouvrir</button>
+</div>
+
+
+<div class="row">
 <span class="label">IP Navigateur :</span>
 <span id="browserIp" class="value"></span>
 </div>
@@ -128,6 +135,21 @@ document.getElementById("referrer").textContent = referrer || "Aucun referrer";
 document.getElementById("cnx").textContent = cnx;
 document.getElementById("uuid").textContent = uuid;
 document.getElementById("apiUrl").textContent = apiUrl || "Non disponible";
+// URL Portail : {origin}/{cnx}/isuiteexpert/?UUID={UUID}
+function computePortalUrl() {
+  if (!apiUrl || cnx === "Non présent" || !uuidValid) return null;
+  try {
+    const u = new URL(apiUrl);
+    return u.origin + "/" + cnx + "/isuiteexpert/?UUID=" + encodeURIComponent(uuid);
+  } catch {
+    return null;
+  }
+}
+
+const portalUrl = computePortalUrl();
+document.getElementById("portalUrl").textContent = portalUrl || "Non disponible";
+document.getElementById("btnPortal").disabled = !portalUrl;
+
 
 async function detectBrowserIP() {
  try {
@@ -259,7 +281,20 @@ function openSwagger() {
   }
 }
 
-async function copyCurl() {
+async 
+function openPortal() {
+  const url = computePortalUrl();
+  if (!url) {
+    alert("URL Portail non disponible (vérifiez cnx, uuid et/ou ?api=...).");
+    return;
+  }
+  const w = window.open(url, "_blank");
+  if (!w) {
+    window.location.href = url;
+  }
+}
+
+function copyCurl() {
   const ctx = getContext();
   if (!ctx.apiUrl || !ctx.uuid) {
     alert("Contexte incomplet (URL API ou UUID).");
@@ -280,6 +315,7 @@ async function copyCurl() {
 
 document.getElementById("btnTest").addEventListener("click", testSSO);
 document.getElementById("btnSwagger").addEventListener("click", openSwagger);
+document.getElementById("btnPortal").addEventListener("click", openPortal);
 document.getElementById("btnCurl").addEventListener("click", copyCurl);
 document.getElementById("btnCopyUuid").addEventListener("click", copyUUID);
 
