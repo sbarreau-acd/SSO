@@ -12,12 +12,13 @@ body { font-family: Arial; padding:40px; background:#f5f6f8; }
 .label { font-weight:bold; width:150px; display:inline-block; }
 .value { color:#003366; word-break:break-all; }
 button { background:#003366; color:white; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; }
-button:disabled { opacity:0.5; }
+.small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
 .actions { margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; }
 pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white-space:pre-wrap; }
 .ok { color:#0b6b2e; font-weight:bold; }
 .err { color:#b00020; font-weight:bold; }
-.small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
+.copied { color:#0b6b2e; font-weight:bold; margin-left:10px; font-size:12px; }
+.hidden { display:none; }
 </style>
 </head>
 
@@ -41,6 +42,7 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 <span class="label">uuid :</span>
 <span id="uuid" class="value"></span>
 <button id="btnCopyUuid" class="small-btn">Copier UUID</button>
+<span id="uuidCopied" class="copied hidden">Copié</span>
 </div>
 
 <div class="row">
@@ -123,24 +125,13 @@ async function detectBrowserIP() {
  }
 }
 
-function getContext() {
- return {
-   apiUrl: apiUrl,
-   uuid: uuidValid ? uuid : null,
-   xClientIp: document.getElementById("xClientIp").value.trim(),
-   sendXClientIp: document.getElementById("useXClientIp").checked
- };
-}
-
 async function copyUUID() {
- if (!uuidValid) {
-   alert("UUID invalide ou absent");
-   return;
- }
+ if (!uuidValid) return;
+
+ const copiedLabel = document.getElementById("uuidCopied");
 
  try {
    await navigator.clipboard.writeText(uuid);
-   alert("UUID copié dans le presse-papiers");
  } catch {
    const textarea = document.createElement("textarea");
    textarea.value = uuid;
@@ -148,8 +139,22 @@ async function copyUUID() {
    textarea.select();
    document.execCommand("copy");
    document.body.removeChild(textarea);
-   alert("UUID copié (mode fallback)");
  }
+
+ copiedLabel.classList.remove("hidden");
+
+ setTimeout(() => {
+   copiedLabel.classList.add("hidden");
+ }, 2000);
+}
+
+function getContext() {
+ return {
+   apiUrl: apiUrl,
+   uuid: uuidValid ? uuid : null,
+   xClientIp: document.getElementById("xClientIp").value.trim(),
+   sendXClientIp: document.getElementById("useXClientIp").checked
+ };
 }
 
 async function testSSO() {
