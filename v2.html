@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>SSO - Test UUID</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
+%3Ctext y='0.9em' font-size='90'%3E🔑%3C/text%3E
+%3C/svg%3E">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 
 <style>
@@ -12,11 +16,13 @@ body { font-family: Arial; padding:40px; background:#f5f6f8; }
 .label { font-weight:bold; width:150px; display:inline-block; }
 .value { color:#003366; word-break:break-all; }
 button { background:#003366; color:white; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; }
-button:disabled { opacity:0.5; }
+.small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
 .actions { margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; }
 pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white-space:pre-wrap; }
 .ok { color:#0b6b2e; font-weight:bold; }
 .err { color:#b00020; font-weight:bold; }
+.copied { color:#0b6b2e; font-weight:bold; margin-left:10px; font-size:12px; }
+.hidden { display:none; }
 </style>
 </head>
 
@@ -27,7 +33,7 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 <div class="box">
 
 <div class="row">
-<span class="label">Referrer :</span>
+<span class="label">URL (Referrer) :</span>
 <span id="referrer" class="value"></span>
 </div>
 
@@ -39,6 +45,8 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 <div class="row">
 <span class="label">uuid :</span>
 <span id="uuid" class="value"></span>
+<button id="btnCopyUuid" class="small-btn">Copier UUID</button>
+<span id="uuidCopied" class="copied hidden">Copié</span>
 </div>
 
 <div class="row">
@@ -47,14 +55,27 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 </div>
 
 <div class="row">
+<span class="label">IP Navigateur :</span>
+<span id="browserIp" class="value"></span>
+</div>
+
+<div class="row">
 <span class="label">X-CLIENT-IP :</span>
 <input type="text" id="xClientIp" placeholder="Ex : 192.168.1.1">
+</div>
+
+<div class="row">
+<label>
+<input type="checkbox" id="useXClientIp">
+ Envoyer le header X-CLIENT-IP
+</label>
 </div>
 
 <div class="actions">
 <button id="btnTest">Tester SSO (UUID)</button>
 <button id="btnSwagger">Ouvrir Swagger</button>
 <button id="btnCurl">Copier CURL</button>
+<span id="curlCopied" class="copied hidden">Copié</span>
 </div>
 
 <h3>Résultat</h3>
@@ -85,23 +106,80 @@ if (!cnx) cnx = "Non présent";
 if (!uuidValid) uuid = uuid ? "UUID invalide" : "Non présent";
 
 let apiUrl = null;
-if (referrer && cnx !== "Non présent") {
- try {
-   const urlObj = new URL(referrer);
-   apiUrl = urlObj.origin + "/" + cnx + "/api";
- } catch {}
+
+// Option : override explicite via querystring ?api=https://<serveur>/<cnx>/api
+const apiOverrideRaw = (params.get("api") || "").trim();
+if (apiOverrideRaw) {
+  // Normalisation : supprime les espaces et slash finaux
+  apiUrl = apiOverrideRaw.replace(/\s+/g, "").replace(/\/+$/, "");
+} else if (referrer && cnx !== "Non présent") {
+  // Fallback : construit l'URL API à partir du referrer (si pertinent)
+  try {
+    const urlObj = new URL(referrer);
+    apiUrl = (urlObj.origin + "/" + cnx + "/api").replace(/\/+$/, "");
+  } catch {}
 }
+
+// Normalisation finale : pas de slash final
+if (apiUrl) apiUrl = apiUrl.replace(/\/+$/, "");
+
 
 document.getElementById("referrer").textContent = referrer || "Aucun referrer";
 document.getElementById("cnx").textContent = cnx;
 document.getElementById("uuid").textContent = uuid;
 document.getElementById("apiUrl").textContent = apiUrl || "Non disponible";
 
+async function detectBrowserIP() {
+ try {
+   const r = await fetch("https://api.ipify.org?format=json");
+   if (!r.ok) throw new Error();
+   const data = await r.json();
+   document.getElementById("browserIp").textContent = data.ip + " (ipify)";
+   document.getElementById("xClientIp").value = data.ip;
+ } catch {
+   document.getElementById("browserIp").textContent = "Impossible de récupérer l’IP";
+ }
+}
+
+function showCopied(id) {
+ const el = document.getElementById(id);
+ if (!el) return;
+ el.classList.remove("hidden");
+ setTimeout(() => el.classList.add("hidden"), 2000);
+}
+
+async function copyTextToClipboard(text) {
+ try {
+   await navigator.clipboard.writeText(text);
+   return true;
+ } catch {
+   try {
+     const textarea = document.createElement("textarea");
+     textarea.value = text;
+     document.body.appendChild(textarea);
+     textarea.select();
+     document.execCommand("copy");
+     document.body.removeChild(textarea);
+     return true;
+   } catch {
+     return false;
+   }
+ }
+}
+
+async function copyUUID() {
+ if (!uuidValid) return;
+
+ await copyTextToClipboard(uuid);
+ showCopied("uuidCopied");
+}
+
 function getContext() {
  return {
    apiUrl: apiUrl,
    uuid: uuidValid ? uuid : null,
-   xClientIp: document.getElementById("xClientIp").value.trim()
+   xClientIp: document.getElementById("xClientIp").value.trim(),
+   sendXClientIp: document.getElementById("useXClientIp").checked
  };
 }
 
@@ -131,7 +209,7 @@ const headers = {
  "Content-Type": "application/json-patch+json"
 };
 
-if (ctx.xClientIp) {
+if (ctx.sendXClientIp && ctx.xClientIp) {
  headers["X-CLIENT-IP"] = ctx.xClientIp;
 }
 
@@ -164,34 +242,54 @@ try {
 
 }
 
-document.getElementById("btnTest").addEventListener("click", testSSO);
+function openSwagger() {
+  const ctx = getContext();
 
-document.getElementById("btnSwagger").addEventListener("click", function(){
- if (!apiUrl) return alert("URL API non disponible");
- window.open(apiUrl + "/swagger/", "_blank");
-});
+  if (!ctx.apiUrl) {
+    alert("URL API non disponible. Astuce : ajoutez ?api=https://<serveur>/<cnx>/api à l’URL de la page.");
+    return;
+  }
 
-document.getElementById("btnCurl").addEventListener("click", function(){
+  const base = ctx.apiUrl.replace(/\/+$/, "");
+  const swaggerUrl = base + "/swagger/index.html";
 
-const ctx = getContext();
-if (!ctx.apiUrl || !ctx.uuid) return alert("Contexte incomplet");
-
-let curl = `curl -X 'POST' \\\n  '${ctx.apiUrl}/v1/authentification/uuid' \\\n  -H 'accept: text/plain' \\\n`;
-
-if (ctx.xClientIp) {
- curl += `  -H 'X-CLIENT-IP: ${ctx.xClientIp}' \\\n`;
+  const w = window.open(swaggerUrl, "_blank");
+  if (!w) {
+    window.location.href = swaggerUrl;
+  }
 }
 
-curl += `  -H 'Content-Type: application/json-patch+json' \\\n  -d '{\n  "UUID": "${ctx.uuid}"\n}'`;
+async function copyCurl() {
+  const ctx = getContext();
+  if (!ctx.apiUrl || !ctx.uuid) {
+    alert("Contexte incomplet (URL API ou UUID).");
+    return;
+  }
 
-navigator.clipboard.writeText(curl).then(() => {
- alert("CURL copié");
-});
+  let curl = `curl -X 'POST' \\n  '${ctx.apiUrl.replace(/\/+$/, "")}/v1/authentification/uuid' \\n  -H 'accept: text/plain' \\n`;
 
-});
+  if (ctx.sendXClientIp && ctx.xClientIp) {
+    curl += `  -H 'X-CLIENT-IP: ${ctx.xClientIp}' \\n`;
+  }
+
+  curl += `  -H 'Content-Type: application/json-patch+json' \\n  -d '{\n  "UUID": "${ctx.uuid}"\n}'`;
+
+  await copyTextToClipboard(curl);
+  showCopied("curlCopied");
+}
+
+document.getElementById("btnTest").addEventListener("click", testSSO);
+document.getElementById("btnSwagger").addEventListener("click", openSwagger);
+document.getElementById("btnCurl").addEventListener("click", copyCurl);
+document.getElementById("btnCopyUuid").addEventListener("click", copyUUID);
+
+detectBrowserIP();
+
 
 })();
 </script>
 
 </body>
 </html>
+
+
