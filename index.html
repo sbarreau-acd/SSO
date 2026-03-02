@@ -3,26 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <title>SSO - Test UUID</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
-%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
-%3Ctext y='0.9em' font-size='90'%3E🔑%3C/text%3E
-%3C/svg%3E">
 <meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="icon" href="data:,">
 
 <style>
-body { font-family: Arial; padding:40px; background:#f5f6f8; }
-.box { background:#fff; padding:20px; border-radius:8px; max-width:1000px; border:1px solid #ddd; }
-.row { margin-bottom:12px; }
-.label { font-weight:bold; width:150px; display:inline-block; }
-.value { color:#003366; word-break:break-all; }
-button { background:#003366; color:white; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; }
-.small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
-.actions { margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; }
-pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white-space:pre-wrap; }
-.ok { color:#0b6b2e; font-weight:bold; }
-.err { color:#b00020; font-weight:bold; }
-.copied { color:#0b6b2e; font-weight:bold; margin-left:10px; font-size:12px; }
-.hidden { display:none; }
+  body { font-family: Arial; padding:40px; background:#f5f6f8; }
+  .box { background:#fff; padding:20px; border-radius:8px; max-width:1100px; border:1px solid #ddd; }
+  .row { margin-bottom:12px; }
+  .label { font-weight:bold; width:170px; display:inline-block; }
+  .value { color:#003366; word-break:break-all; }
+  input[type="text"] { padding:6px 8px; border:1px solid #ccc; border-radius:6px; min-width:280px; }
+  button { background:#003366; color:white; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; }
+  button:disabled { opacity:0.5; cursor:not-allowed; }
+  .actions { margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white-space:pre-wrap; }
+  .ok { color:#0b6b2e; font-weight:bold; }
+  .err { color:#b00020; font-weight:bold; }
+  .small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
+  .copied { color:#0b6b2e; font-weight:bold; margin-left:10px; font-size:12px; }
+  .hidden { display:none; }
+  .hint { font-size:12px; color:#666; margin-top:4px; }
 </style>
 </head>
 
@@ -32,301 +32,347 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 
 <div class="box">
 
-<div class="row">
-<span class="label">URL (Referrer) :</span>
-<span id="referrer" class="value"></span>
-</div>
+  <div class="row">
+    <span class="label">Referrer :</span>
+    <span id="referrer" class="value"></span>
+  </div>
 
-<div class="row">
-<span class="label">cnx :</span>
-<span id="cnx" class="value"></span>
-</div>
+  <div class="row">
+    <span class="label">cnx :</span>
+    <span id="cnx" class="value"></span>
+  </div>
 
-<div class="row">
-<span class="label">uuid :</span>
-<span id="uuid" class="value"></span>
-<button id="btnCopyUuid" class="small-btn">Copier UUID</button>
-<span id="uuidCopied" class="copied hidden">Copié</span>
-</div>
+  <div class="row">
+    <span class="label">uuid :</span>
+    <span id="uuid" class="value"></span>
+    <button id="btnCopyUuid" class="small-btn">Copier UUID</button>
+    <span id="uuidCopied" class="copied hidden">Copié</span>
+  </div>
 
-<div class="row">
-<span class="label">URL API :</span>
-<span id="apiUrl" class="value"></span>
-</div>
+  <div class="row">
+    <span class="label">URL API :</span>
+    <span id="apiUrl" class="value"></span>
+  </div>
 
-<div class="row">
-<span class="label">URL Portail :</span>
-<span id="portalUrl" class="value"></span>
-<button id="btnPortal" class="small-btn">Ouvrir</button>
-</div>
+  <div class="row">
+    <span class="label">URL Portail :</span>
+    <span id="portalUrl" class="value"></span>
+    <button id="btnPortal" class="small-btn">Ouvrir</button>
+  </div>
 
+  <div class="row">
+    <span class="label">IP Navigateur :</span>
+    <span id="browserIp" class="value"></span>
+  </div>
 
-<div class="row">
-<span class="label">IP Navigateur :</span>
-<span id="browserIp" class="value"></span>
-</div>
+  <div class="row">
+    <span class="label">X-CLIENT-IP :</span>
+    <input type="text" id="xClientIp" placeholder="Ex : 192.168.1.1">
+    <div class="hint">Optionnel — à envoyer uniquement si activé ci-dessous.</div>
+  </div>
 
-<div class="row">
-<span class="label">X-CLIENT-IP :</span>
-<input type="text" id="xClientIp" placeholder="Ex : 192.168.1.1">
-</div>
+  <div class="row">
+    <label>
+      <input type="checkbox" id="useXClientIp">
+      Envoyer le header X-CLIENT-IP
+    </label>
+  </div>
 
-<div class="row">
-<label>
-<input type="checkbox" id="useXClientIp">
- Envoyer le header X-CLIENT-IP
-</label>
-</div>
+  <div class="actions">
+    <button id="btnTest">Tester SSO (UUID)</button>
+    <button id="btnSwagger">Ouvrir Swagger</button>
+    <button id="btnCurl">Copier CURL</button>
+    <span id="curlCopied" class="copied hidden">Copié</span>
+  </div>
 
-<div class="actions">
-<button id="btnTest">Tester SSO (UUID)</button>
-<button id="btnSwagger">Ouvrir Swagger</button>
-<button id="btnCurl">Copier CURL</button>
-<span id="curlCopied" class="copied hidden">Copié</span>
-</div>
+  <div class="hint">
+    Astuce : vous pouvez forcer l’URL API via <code>?api=https://isuiteapiprod.suiteexpert.fr/cnx/api</code>
+  </div>
 
-<h3>Résultat</h3>
-<div id="resultTitle"></div>
-<pre id="result"></pre>
+  <h3>Résultat</h3>
+  <div id="resultTitle"></div>
+  <pre id="result"></pre>
 
 </div>
 
 <script>
 (function(){
 
-const referrer = document.referrer || "";
-const params = new URLSearchParams(window.location.search);
+  // -----------------------------
+  // Helpers
+  // -----------------------------
+  function showCopied(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.classList.remove("hidden");
+    setTimeout(function(){ el.classList.add("hidden"); }, 2000);
+  }
 
-let cnx = "";
-let uuid = "";
+  function copyText(text, feedbackId){
+    if(!text) return;
 
-for (const [key, value] of params.entries()) {
- if (key.toLowerCase() === "cnx") cnx = value;
- if (key.toLowerCase() === "uuid") uuid = value;
-}
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){
+        showCopied(feedbackId);
+      }).catch(function(){
+        // fallback
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        showCopied(feedbackId);
+      });
+    } else {
+      // fallback old browsers
+      var ta2 = document.createElement("textarea");
+      ta2.value = text;
+      document.body.appendChild(ta2);
+      ta2.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta2);
+      showCopied(feedbackId);
+    }
+  }
 
-if (uuid.endsWith("/")) uuid = uuid.slice(0,-1);
+  function safeOpen(url){
+    if(!url) return;
+    var w = window.open(url, "_blank");
+    if(!w) window.location.href = url; // fallback popup blocked / iframe
+  }
 
-const uuidValid = /^[a-z0-9]+$/i.test(uuid);
+  function normalizeBase(u){
+    return (u || "").replace(/\/+$/, "");
+  }
 
-if (!cnx) cnx = "Non présent";
-if (!uuidValid) uuid = uuid ? "UUID invalide" : "Non présent";
+  // -----------------------------
+  // Context from URL / referrer
+  // -----------------------------
+  var referrer = document.referrer || "";
+  var params = new URLSearchParams(window.location.search);
 
-let apiUrl = null;
+  var cnx = "";
+  var uuid = "";
 
-// Option : override explicite via querystring ?api=https://<serveur>/<cnx>/api
-const apiOverrideRaw = (params.get("api") || "").trim();
-if (apiOverrideRaw) {
-  // Normalisation : supprime les espaces et slash finaux
-  apiUrl = apiOverrideRaw.replace(/\s+/g, "").replace(/\/+$/, "");
-} else if (referrer && cnx !== "Non présent") {
-  // Fallback : construit l'URL API à partir du referrer (si pertinent)
-  try {
-    const urlObj = new URL(referrer);
-    apiUrl = (urlObj.origin + "/" + cnx + "/api").replace(/\/+$/, "");
-  } catch {}
-}
+  // read cnx + uuid from query string (case-insensitive)
+  params.forEach(function(value, key){
+    var k = (key || "").toLowerCase();
+    if(k === "cnx") cnx = value;
+    if(k === "uuid") uuid = value;
+  });
 
-// Normalisation finale : pas de slash final
-if (apiUrl) apiUrl = apiUrl.replace(/\/+$/, "");
+  if (uuid && uuid.endsWith("/")) uuid = uuid.slice(0, -1);
 
+  var uuidValid = /^[a-z0-9]+$/i.test(uuid);
 
-document.getElementById("referrer").textContent = referrer || "Aucun referrer";
-document.getElementById("cnx").textContent = cnx;
-document.getElementById("uuid").textContent = uuid;
-document.getElementById("apiUrl").textContent = apiUrl || "Non disponible";
-// URL Portail : {origin}/{cnx}/isuiteexpert/?UUID={UUID}
-function computePortalUrl() {
-  if (!apiUrl || cnx === "Non présent" || !uuidValid) return null;
-  try {
-    const u = new URL(apiUrl);
-    return u.origin + "/" + cnx + "/isuiteexpert/?UUID=" + encodeURIComponent(uuid);
-  } catch {
+  if (!cnx) cnx = "Non présent";
+  if (!uuidValid) uuid = uuid ? "UUID invalide" : "Non présent";
+
+  // api override via ?api=...
+  var apiOverride = (params.get("api") || "").trim();
+  if (apiOverride) apiOverride = normalizeBase(apiOverride);
+
+  // compute apiUrl
+  var apiUrl = null;
+
+  if (apiOverride) {
+    apiUrl = apiOverride;
+  } else if (referrer && cnx !== "Non présent") {
+    try {
+      var urlObj = new URL(referrer);
+      apiUrl = normalizeBase(urlObj.origin + "/" + cnx + "/api");
+    } catch(e) {}
+  }
+
+  // Display
+  document.getElementById("referrer").textContent = referrer || "Aucun referrer";
+  document.getElementById("cnx").textContent = cnx;
+  document.getElementById("uuid").textContent = uuid;
+  document.getElementById("apiUrl").textContent = apiUrl || "Non disponible";
+
+  // -----------------------------
+  // Portal URL (based on origin)
+  // Required format by user:
+  // {URL API}/{cnx}/isuiteexpert/?UUID={UUID}
+  // NOTE: If URL API already contains /<cnx>/api, we will derive origin and rebuild.
+  // -----------------------------
+  function computePortalUrl(){
+    if(!uuidValid) return null;
+
+    // 1) If apiUrl exists, derive origin from it
+    if (apiUrl) {
+      try {
+        var u = new URL(apiUrl);
+        var origin = u.origin;
+
+        // Build portal URL as: {origin}/{cnx}/isuiteexpert/?UUID={uuid}
+        // (more robust than chaining after apiUrl)
+        if (cnx && cnx !== "Non présent") {
+          return origin + "/" + cnx + "/isuiteexpert/?UUID=" + encodeURIComponent(params.get("uuid") || "");
+        }
+      } catch(e) {}
+    }
+
+    // 2) fallback: derive origin from referrer
+    if (referrer) {
+      try {
+        var r = new URL(referrer);
+        if (cnx && cnx !== "Non présent") {
+          return r.origin + "/" + cnx + "/isuiteexpert/?UUID=" + encodeURIComponent(params.get("uuid") || "");
+        }
+      } catch(e2) {}
+    }
+
     return null;
   }
-}
 
-const portalUrl = computePortalUrl();
-document.getElementById("portalUrl").textContent = portalUrl || "Non disponible";
-document.getElementById("btnPortal").disabled = !portalUrl;
+  var portalUrl = computePortalUrl();
+  document.getElementById("portalUrl").textContent = portalUrl || "Non disponible";
+  document.getElementById("btnPortal").disabled = !portalUrl;
 
-
-async function detectBrowserIP() {
- try {
-   const r = await fetch("https://api.ipify.org?format=json");
-   if (!r.ok) throw new Error();
-   const data = await r.json();
-   document.getElementById("browserIp").textContent = data.ip + " (ipify)";
-   document.getElementById("xClientIp").value = data.ip;
- } catch {
-   document.getElementById("browserIp").textContent = "Impossible de récupérer l’IP";
- }
-}
-
-function showCopied(id) {
- const el = document.getElementById(id);
- if (!el) return;
- el.classList.remove("hidden");
- setTimeout(() => el.classList.add("hidden"), 2000);
-}
-
-async function copyTextToClipboard(text) {
- try {
-   await navigator.clipboard.writeText(text);
-   return true;
- } catch {
-   try {
-     const textarea = document.createElement("textarea");
-     textarea.value = text;
-     document.body.appendChild(textarea);
-     textarea.select();
-     document.execCommand("copy");
-     document.body.removeChild(textarea);
-     return true;
-   } catch {
-     return false;
-   }
- }
-}
-
-async function copyUUID() {
- if (!uuidValid) return;
-
- await copyTextToClipboard(uuid);
- showCopied("uuidCopied");
-}
-
-function getContext() {
- return {
-   apiUrl: apiUrl,
-   uuid: uuidValid ? uuid : null,
-   xClientIp: document.getElementById("xClientIp").value.trim(),
-   sendXClientIp: document.getElementById("useXClientIp").checked
- };
-}
-
-async function testSSO() {
-
-const ctx = getContext();
-const result = document.getElementById("result");
-const title = document.getElementById("resultTitle");
-
-result.textContent = "";
-title.innerHTML = "";
-
-if (!ctx.apiUrl) {
- title.innerHTML = "<span class='err'>URL API non disponible</span>";
- return;
-}
-
-if (!ctx.uuid) {
- title.innerHTML = "<span class='err'>UUID invalide</span>";
- return;
-}
-
-const endpoint = ctx.apiUrl + "/v1/authentification/uuid";
-
-const headers = {
- "accept": "text/plain",
- "Content-Type": "application/json-patch+json"
-};
-
-if (ctx.sendXClientIp && ctx.xClientIp) {
- headers["X-CLIENT-IP"] = ctx.xClientIp;
-}
-
-try {
- const response = await fetch(endpoint, {
-   method: "POST",
-   headers: headers,
-   body: JSON.stringify({ UUID: ctx.uuid })
- });
-
- const text = await response.text();
-
- if (!response.ok) {
-   title.innerHTML = "<span class='err'>Erreur HTTP " + response.status + "</span>";
-   result.textContent = text;
-   return;
- }
-
- title.innerHTML = "<span class='ok'>Connexion SSO valide</span>";
- try {
-   result.textContent = JSON.stringify(JSON.parse(text), null, 2);
- } catch {
-   result.textContent = text;
- }
-
-} catch (e) {
- title.innerHTML = "<span class='err'>Erreur réseau / CORS</span>";
- result.textContent = e.message;
-}
-
-}
-
-function openSwagger() {
-  const ctx = getContext();
-
-  if (!ctx.apiUrl) {
-    alert("URL API non disponible. Astuce : ajoutez ?api=https://<serveur>/<cnx>/api à l’URL de la page.");
-    return;
+  // -----------------------------
+  // Browser public IP (optional)
+  // -----------------------------
+  function detectBrowserIP(){
+    var el = document.getElementById("browserIp");
+    el.textContent = "Chargement...";
+    fetch("https://api.ipify.org?format=json").then(function(r){
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function(data){
+      if (!data || !data.ip) throw new Error("ip missing");
+      el.textContent = data.ip + " (ipify)";
+      document.getElementById("xClientIp").value = data.ip;
+    }).catch(function(){
+      el.textContent = "Impossible de récupérer l’IP";
+    });
   }
 
-  const base = ctx.apiUrl.replace(/\/+$/, "");
-  const swaggerUrl = base + "/swagger/index.html";
-
-  const w = window.open(swaggerUrl, "_blank");
-  if (!w) {
-    window.location.href = swaggerUrl;
-  }
-}
-
-async 
-function openPortal() {
-  const url = computePortalUrl();
-  if (!url) {
-    alert("URL Portail non disponible (vérifiez cnx, uuid et/ou ?api=...).");
-    return;
-  }
-  const w = window.open(url, "_blank");
-  if (!w) {
-    window.location.href = url;
-  }
-}
-
-function copyCurl() {
-  const ctx = getContext();
-  if (!ctx.apiUrl || !ctx.uuid) {
-    alert("Contexte incomplet (URL API ou UUID).");
-    return;
+  // -----------------------------
+  // Get runtime context
+  // -----------------------------
+  function getContext() {
+    return {
+      apiUrl: apiUrl,
+      uuid: uuidValid ? (params.get("uuid") || "") : null,
+      xClientIp: (document.getElementById("xClientIp").value || "").trim(),
+      sendXClientIp: document.getElementById("useXClientIp").checked
+    };
   }
 
-  let curl = `curl -X 'POST' \\n  '${ctx.apiUrl.replace(/\/+$/, "")}/v1/authentification/uuid' \\n  -H 'accept: text/plain' \\n`;
+  // -----------------------------
+  // Actions
+  // -----------------------------
+  function testSSO() {
+    var ctx = getContext();
+    var result = document.getElementById("result");
+    var title = document.getElementById("resultTitle");
 
-  if (ctx.sendXClientIp && ctx.xClientIp) {
-    curl += `  -H 'X-CLIENT-IP: ${ctx.xClientIp}' \\n`;
+    result.textContent = "";
+    title.innerHTML = "";
+
+    if (!ctx.apiUrl) {
+      title.innerHTML = "<span class='err'>URL API non disponible (utilisez ?api=...)</span>";
+      return;
+    }
+    if (!ctx.uuid) {
+      title.innerHTML = "<span class='err'>UUID invalide</span>";
+      return;
+    }
+
+    var endpoint = normalizeBase(ctx.apiUrl) + "/v1/authentification/uuid";
+
+    var headers = {
+      "accept": "text/plain",
+      "Content-Type": "application/json-patch+json"
+    };
+    if (ctx.sendXClientIp && ctx.xClientIp) {
+      headers["X-CLIENT-IP"] = ctx.xClientIp;
+    }
+
+    fetch(endpoint, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({ UUID: ctx.uuid })
+    }).then(function(response){
+      return response.text().then(function(text){
+        return { ok: response.ok, status: response.status, text: text };
+      });
+    }).then(function(res){
+      if (!res.ok) {
+        title.innerHTML = "<span class='err'>Erreur HTTP " + res.status + "</span>";
+        result.textContent = res.text;
+        return;
+      }
+      title.innerHTML = "<span class='ok'>Connexion SSO valide</span>";
+      try {
+        result.textContent = JSON.stringify(JSON.parse(res.text), null, 2);
+      } catch(e) {
+        result.textContent = res.text;
+      }
+    }).catch(function(e){
+      title.innerHTML = "<span class='err'>Erreur réseau / CORS</span>";
+      result.textContent = e && e.message ? e.message : String(e);
+    });
   }
 
-  curl += `  -H 'Content-Type: application/json-patch+json' \\n  -d '{\n  "UUID": "${ctx.uuid}"\n}'`;
+  function openSwagger(){
+    // Always open based on ctx.apiUrl (more reliable than referrer)
+    var ctx = getContext();
+    if (!ctx.apiUrl) {
+      alert("URL API non disponible. Ajoutez ?api=https://<serveur>/<cnx>/api");
+      return;
+    }
+    var swaggerUrl = normalizeBase(ctx.apiUrl) + "/swagger/index.html";
+    safeOpen(swaggerUrl);
+  }
 
-  await copyTextToClipboard(curl);
-  showCopied("curlCopied");
-}
+  function copyCurl(){
+    var ctx = getContext();
+    if (!ctx.apiUrl || !ctx.uuid) return;
 
-document.getElementById("btnTest").addEventListener("click", testSSO);
-document.getElementById("btnSwagger").addEventListener("click", openSwagger);
-document.getElementById("btnPortal").addEventListener("click", openPortal);
-document.getElementById("btnCurl").addEventListener("click", copyCurl);
-document.getElementById("btnCopyUuid").addEventListener("click", copyUUID);
+    var base = normalizeBase(ctx.apiUrl);
+    var curl = "curl -X 'POST' \\\n" +
+      "  '" + base + "/v1/authentification/uuid' \\\n" +
+      "  -H 'accept: text/plain' \\\n";
 
-detectBrowserIP();
+    if (ctx.sendXClientIp && ctx.xClientIp) {
+      curl += "  -H 'X-CLIENT-IP: " + ctx.xClientIp + "' \\\n";
+    }
 
+    curl += "  -H 'Content-Type: application/json-patch+json' \\\n" +
+      "  -d '{\n" +
+      "  \"UUID\": \"" + ctx.uuid + "\"\n" +
+      "}'";
+
+    copyText(curl, "curlCopied");
+  }
+
+  // -----------------------------
+  // Wire buttons
+  // -----------------------------
+  document.getElementById("btnTest").addEventListener("click", testSSO);
+
+  document.getElementById("btnSwagger").addEventListener("click", openSwagger);
+
+  document.getElementById("btnCurl").addEventListener("click", copyCurl);
+
+  document.getElementById("btnCopyUuid").addEventListener("click", function(){
+    if (!uuidValid) return;
+    copyText(params.get("uuid") || "", "uuidCopied");
+  });
+
+  document.getElementById("btnPortal").addEventListener("click", function(){
+    if (!portalUrl) return;
+    safeOpen(portalUrl);
+  });
+
+  // Init
+  detectBrowserIP();
 
 })();
 </script>
 
 </body>
 </html>
-
-
-
