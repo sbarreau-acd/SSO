@@ -17,7 +17,7 @@ button:disabled { opacity:0.5; }
 pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white-space:pre-wrap; }
 .ok { color:#0b6b2e; font-weight:bold; }
 .err { color:#b00020; font-weight:bold; }
-.ip-note { font-size:12px; color:#666; }
+.small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
 </style>
 </head>
 
@@ -40,6 +40,7 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 <div class="row">
 <span class="label">uuid :</span>
 <span id="uuid" class="value"></span>
+<button id="btnCopyUuid" class="small-btn">Copier UUID</button>
 </div>
 
 <div class="row">
@@ -131,6 +132,26 @@ function getContext() {
  };
 }
 
+async function copyUUID() {
+ if (!uuidValid) {
+   alert("UUID invalide ou absent");
+   return;
+ }
+
+ try {
+   await navigator.clipboard.writeText(uuid);
+   alert("UUID copié dans le presse-papiers");
+ } catch {
+   const textarea = document.createElement("textarea");
+   textarea.value = uuid;
+   document.body.appendChild(textarea);
+   textarea.select();
+   document.execCommand("copy");
+   document.body.removeChild(textarea);
+   alert("UUID copié (mode fallback)");
+ }
+}
+
 async function testSSO() {
 
 const ctx = getContext();
@@ -191,30 +212,7 @@ try {
 }
 
 document.getElementById("btnTest").addEventListener("click", testSSO);
-
-document.getElementById("btnSwagger").addEventListener("click", function(){
- if (!apiUrl) return alert("URL API non disponible");
- window.open(apiUrl + "/swagger/", "_blank");
-});
-
-document.getElementById("btnCurl").addEventListener("click", function(){
-
-const ctx = getContext();
-if (!ctx.apiUrl || !ctx.uuid) return alert("Contexte incomplet");
-
-let curl = `curl -X 'POST' \\\n  '${ctx.apiUrl}/v1/authentification/uuid' \\\n  -H 'accept: text/plain' \\\n`;
-
-if (ctx.sendXClientIp && ctx.xClientIp) {
- curl += `  -H 'X-CLIENT-IP: ${ctx.xClientIp}' \\\n`;
-}
-
-curl += `  -H 'Content-Type: application/json-patch+json' \\\n  -d '{\n  "UUID": "${ctx.uuid}"\n}'`;
-
-navigator.clipboard.writeText(curl).then(() => {
- alert("CURL copié");
-});
-
-});
+document.getElementById("btnCopyUuid").addEventListener("click", copyUUID);
 
 detectBrowserIP();
 
