@@ -75,6 +75,7 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 <button id="btnTest">Tester SSO (UUID)</button>
 <button id="btnSwagger">Ouvrir Swagger</button>
 <button id="btnCurl">Copier CURL</button>
+<span id="curlCopied" class="copied hidden">Copié</span>
 </div>
 
 <h3>Résultat</h3>
@@ -105,12 +106,23 @@ if (!cnx) cnx = "Non présent";
 if (!uuidValid) uuid = uuid ? "UUID invalide" : "Non présent";
 
 let apiUrl = null;
-if (referrer && cnx !== "Non présent") {
- try {
-   const urlObj = new URL(referrer);
-   apiUrl = urlObj.origin + "/" + cnx + "/api";
- } catch {}
+
+// Option : override explicite via querystring ?api=https://<serveur>/<cnx>/api
+const apiOverrideRaw = (params.get("api") || "").trim();
+if (apiOverrideRaw) {
+  // Normalisation : supprime les espaces et slash finaux
+  apiUrl = apiOverrideRaw.replace(/\s+/g, "").replace(/\/+$/, "");
+} else if (referrer && cnx !== "Non présent") {
+  // Fallback : construit l'URL API à partir du referrer (si pertinent)
+  try {
+    const urlObj = new URL(referrer);
+    apiUrl = (urlObj.origin + "/" + cnx + "/api").replace(/\/+$/, "");
+  } catch {}
 }
+
+// Normalisation finale : pas de slash final
+if (apiUrl) apiUrl = apiUrl.replace(/\/+$/, "");
+
 
 document.getElementById("referrer").textContent = referrer || "Aucun referrer";
 document.getElementById("cnx").textContent = cnx;
@@ -129,27 +141,37 @@ async function detectBrowserIP() {
  }
 }
 
+function showCopied(id) {
+ const el = document.getElementById(id);
+ if (!el) return;
+ el.classList.remove("hidden");
+ setTimeout(() => el.classList.add("hidden"), 2000);
+}
+
+async function copyTextToClipboard(text) {
+ try {
+   await navigator.clipboard.writeText(text);
+   return true;
+ } catch {
+   try {
+     const textarea = document.createElement("textarea");
+     textarea.value = text;
+     document.body.appendChild(textarea);
+     textarea.select();
+     document.execCommand("copy");
+     document.body.removeChild(textarea);
+     return true;
+   } catch {
+     return false;
+   }
+ }
+}
+
 async function copyUUID() {
  if (!uuidValid) return;
 
- const copiedLabel = document.getElementById("uuidCopied");
-
- try {
-   await navigator.clipboard.writeText(uuid);
- } catch {
-   const textarea = document.createElement("textarea");
-   textarea.value = uuid;
-   document.body.appendChild(textarea);
-   textarea.select();
-   document.execCommand("copy");
-   document.body.removeChild(textarea);
- }
-
- copiedLabel.classList.remove("hidden");
-
- setTimeout(() => {
-   copiedLabel.classList.add("hidden");
- }, 2000);
+ await copyTextToClipboard(uuid);
+ showCopied("uuidCopied");
 }
 
 function getContext() {
@@ -220,10 +242,49 @@ try {
 
 }
 
+function openSwagger() {
+  const ctx = getContext();
+
+  if (!ctx.apiUrl) {
+    alert("URL API non disponible. Astuce : ajoutez ?api=https://<serveur>/<cnx>/api à l’URL de la page.");
+    return;
+  }
+
+  const base = ctx.apiUrl.replace(/\/+$/, "");
+  const swaggerUrl = base + "/swagger/index.html";
+
+  const w = window.open(swaggerUrl, "_blank");
+  if (!w) {
+    window.location.href = swaggerUrl;
+  }
+}
+
+async function copyCurl() {
+  const ctx = getContext();
+  if (!ctx.apiUrl || !ctx.uuid) {
+    alert("Contexte incomplet (URL API ou UUID).");
+    return;
+  }
+
+  let curl = `curl -X 'POST' \\n  '${ctx.apiUrl.replace(/\/+$/, "")}/v1/authentification/uuid' \\n  -H 'accept: text/plain' \\n`;
+
+  if (ctx.sendXClientIp && ctx.xClientIp) {
+    curl += `  -H 'X-CLIENT-IP: ${ctx.xClientIp}' \\n`;
+  }
+
+  curl += `  -H 'Content-Type: application/json-patch+json' \\n  -d '{\n  "UUID": "${ctx.uuid}"\n}'`;
+
+  await copyTextToClipboard(curl);
+  showCopied("curlCopied");
+}
+
 document.getElementById("btnTest").addEventListener("click", testSSO);
+document.getElementById("btnSwagger").addEventListener("click", openSwagger);
+document.getElementById("btnCurl").addEventListener("click", copyCurl);
 document.getElementById("btnCopyUuid").addEventListener("click", copyUUID);
 
 detectBrowserIP();
+
 
 })();
 </script>
