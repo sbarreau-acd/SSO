@@ -43,11 +43,9 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
   align-items:center;
   gap:10px;
 }
-
 .row-portal .value{
   flex:1;
 }
-
 .portal-actions{
   display:flex;
   align-items:center;
@@ -165,13 +163,24 @@ function hideAutoBadge(){
 var referrer=document.referrer||"";
 var params=new URLSearchParams(window.location.search);
 
-var cnx=params.get("cnx")||"";
-var uuid=(params.get("uuid")||"").replace(/\/$/,"");
+/* ✅ Lecture insensible à la casse : CNX/cnx et UUID/uuid */
+var cnx="";
+var uuid="";
+params.forEach(function(value,key){
+  var k=(key||"").toLowerCase();
+  if(k==="cnx") cnx=value;
+  if(k==="uuid") uuid=value;
+});
+
+uuid=(uuid||"").replace(/\/$/,"");
 var uuidValid=/^[a-z0-9]+$/i.test(uuid);
 
 document.getElementById("referrer").textContent=referrer||"Aucun";
 document.getElementById("cnx").textContent=cnx||"Non présent";
 document.getElementById("uuid").textContent=uuid||"Non présent";
+
+/* ✅ Désactiver Copier UUID si UUID absent/invalide */
+document.getElementById("btnCopyUuid").disabled = !uuidValid;
 
 var apiUrl=null;
 if(referrer && cnx){
