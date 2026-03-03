@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>SSO - Test UUID</title>
+<title>connexion SSO par UUID</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
 %3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
 %3Ctext y='0.9em' font-size='90'%3E🔑%3C/text%3E
@@ -27,12 +27,29 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 .copied { color:#0b6b2e; font-weight:bold; margin-left:10px; font-size:12px; }
 .hidden { display:none; }
 .hint { font-size:12px; color:#666; margin-top:4px; }
+
+/* --- Résultat formaté --- */
+.result-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin:10px 0 12px; }
+.card{ background:#f7f8fb; border:1px solid #e2e6ef; border-radius:8px; padding:12px; }
+.card h4{ margin:0 0 10px; font-size:14px; color:#003366; }
+.kv{ display:grid; grid-template-columns: 160px 1fr; gap:6px 12px; font-size:13px; }
+.k{ font-weight:bold; color:#1f2a44; }
+.v{ color:#003366; word-break:break-word; }
+.badges{ display:flex; flex-wrap:wrap; gap:6px; }
+.badge{ background:#003366; color:#fff; border-radius:999px; padding:4px 10px; font-size:12px; }
+.badge.off{ background:#6b7280; }
+.table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+.table th,.table td{ border:1px solid #e2e6ef; padding:6px 8px; text-align:left; vertical-align:top; }
+.table th{ background:#eef2fa; color:#1f2a44; width:220px; }
+details{ margin-top:10px; }
+summary{ cursor:pointer; color:#003366; font-weight:bold; }
+
 </style>
 </head>
 
 <body>
 
-<h2>Diagnostic SSO UUID</h2>
+<h2>Connexion SSO depuis portail i-suite</h2>
 
 <div class="box">
 
@@ -52,17 +69,7 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 <button id="btnCopyUuid" class="small-btn">Copier UUID</button>
 <span id="uuidCopied" class="copied hidden">Copié</span>
 </div>
-
-<div class="row">
-<span class="label">URL API :</span>
-<span id="apiUrl" class="value"></span>
-</div>
-
-<div class="row">
-<span class="label">URL Portail :</span>
-<span id="portalUrl" class="value"></span>
-<button id="btnPortal" class="small-btn">Ouvrir</button>
-</div>
+<hr>
 
 <div class="row">
 <span class="label">IP Navigateur :</span>
@@ -80,6 +87,24 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
  Envoyer le header X-CLIENT-IP
 </label>
 </div>
+<hr>
+
+
+
+
+
+
+<div class="row">
+<span class="label">URL API :</span>
+<span id="apiUrl" class="value"></span>
+</div>
+
+<div class="row">
+<span class="label">URL Portail :</span>
+<span id="portalUrl" class="value"></span>
+<button id="btnPortal" class="small-btn">Ouvrir</button>
+</div>
+
 
 <div class="actions">
 <button id="btnTest">Tester SSO (UUID)</button>
@@ -88,9 +113,33 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 <span id="curlCopied" class="copied hidden">Copié</span>
 </div>
 
+
 <h3>Résultat</h3>
 <div id="resultTitle"></div>
-<pre id="result"></pre>
+
+<div id="resultFormatted" class="hidden">
+  <div class="result-grid">
+    <div class="card">
+      <h4>Identité</h4>
+      <div class="kv" id="kvIdentite"></div>
+    </div>
+    <div class="card">
+      <h4>Variables de session</h4>
+      <table class="table" id="tblVariables"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Options Web</h4>
+    <div class="badges" id="badgesOptions"></div>
+  </div>
+</div>
+
+<details>
+  <summary>Réponse brute</summary>
+  <pre id="result"></pre>
+</details>
+
 
 </div>
 
@@ -175,6 +224,78 @@ function getContext(){
  };
 }
 
+
+function escapeHtml(s){
+  return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+  });
+}
+
+function renderSsoResult(data){
+  var formatted = document.getElementById("resultFormatted");
+  var kv = document.getElementById("kvIdentite");
+  var badges = document.getElementById("badgesOptions");
+  var tbl = document.getElementById("tblVariables");
+
+  // reset
+  kv.innerHTML = "";
+  badges.innerHTML = "";
+  tbl.innerHTML = "";
+  formatted.classList.add("hidden");
+
+  if(!data || typeof data !== "object") return;
+
+  // Identité
+  var ident = [
+    ["UUID", data.UUID],
+    ["Identite", data.Identite],
+    ["Type", data.Type],
+    ["Collaborateur", data.Collaborateur],
+    ["Code", data.Code],
+    ["Email", data.Email],
+    ["Prenom", data.Prenom],
+    ["Nom", data.Nom]
+  ];
+
+  ident.forEach(function(pair){
+    if(pair[1] === undefined) return;
+    kv.insertAdjacentHTML("beforeend",
+      "<div class='k'>"+escapeHtml(pair[0])+"</div><div class='v'>"+escapeHtml(pair[1])+"</div>"
+    );
+  });
+
+  // OptionsWeb
+  if(Array.isArray(data.OptionsWeb) && data.OptionsWeb.length){
+    data.OptionsWeb.forEach(function(o){
+      var lib = (o && (o.Libelle ?? o.libelle)) ?? "";
+      var val = (o && (o.Valeur ?? o.valeur)) ?? "";
+      var off = (val === false || val === "false" || val === 0 || val === "0");
+      var cls = off ? "badge off" : "badge";
+      var label = String(lib || "Option").trim();
+      badges.insertAdjacentHTML("beforeend",
+        "<span class='"+cls+"' title='Valeur: "+escapeHtml(val)+"'>"+escapeHtml(label)+"</span>"
+      );
+    });
+  } else {
+    badges.insertAdjacentHTML("beforeend","<span class='hint'>Aucune option</span>");
+  }
+
+  // VariablesSession
+  var vars = data.VariablesSession;
+  if(vars && typeof vars === "object"){
+    var rows = "";
+    Object.keys(vars).forEach(function(k){
+      rows += "<tr><th>"+escapeHtml(k)+"</th><td>"+escapeHtml(vars[k])+"</td></tr>";
+    });
+    tbl.innerHTML = rows || "<tr><td>Aucune variable</td></tr>";
+  } else {
+    tbl.innerHTML = "<tr><td>Aucune variable</td></tr>";
+  }
+
+  formatted.classList.remove("hidden");
+}
+
+
 function testSSO(){
  var ctx = getContext();
  var title = document.getElementById("resultTitle");
@@ -216,13 +337,24 @@ function testSSO(){
    if(!res.ok){
      title.innerHTML = "<span class='err'>Erreur HTTP "+res.status+"</span>";
      result.textContent = res.text;
+     document.getElementById('resultFormatted').classList.add('hidden');
      return;
    }
    title.innerHTML = "<span class='ok'>Connexion SSO valide</span>";
    result.textContent = res.text;
+
+   // Tentative de mise en forme
+   try{
+     var parsed = JSON.parse(res.text);
+     renderSsoResult(parsed);
+   }catch(e){
+     // Certaines instances renvoient du texte non-JSON : on laisse la réponse brute uniquement.
+     document.getElementById('resultFormatted').classList.add('hidden');
+   }
  }).catch(function(e){
    title.innerHTML = "<span class='err'>Erreur réseau / CORS</span>";
    result.textContent = e.message;
+   document.getElementById('resultFormatted').classList.add('hidden');
  });
 }
 
