@@ -38,20 +38,9 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 .hint { font-size:12px; color:#666; margin-top:4px; }
 
 /* Alignement URL portail */
-.row-portal{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.row-portal .value{
-  flex:1;
-}
-.portal-actions{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  justify-content:flex-end;
-}
+.row-portal{ display:flex; align-items:center; gap:10px; }
+.row-portal .value{ flex:1; }
+.portal-actions{ display:flex; align-items:center; gap:8px; justify-content:flex-end; }
 
 /* Badge auto test */
 .auto-badge{
@@ -70,10 +59,7 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
   transform:translateY(-4px);
   transition:opacity .25s ease, transform .25s ease;
 }
-.auto-badge.show{
-  opacity:1;
-  transform:translateY(0);
-}
+.auto-badge.show{ opacity:1; transform:translateY(0); }
 
 /* --- Résultat formaté --- */
 .result-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin:10px 0 12px; }
@@ -115,6 +101,26 @@ summary{ cursor:pointer; color:#003366; font-weight:bold; }
 
   <hr>
 
+  <!-- ✅ Bloc IP / X-CLIENT-IP réintégré -->
+  <div class="row">
+    <span class="label">IP Navigateur :</span>
+    <span id="browserIp" class="value"></span>
+  </div>
+
+  <div class="row">
+    <span class="label">X-CLIENT-IP :</span>
+    <input type="text" id="xClientIp">
+  </div>
+
+  <div class="row">
+    <label>
+      <input type="checkbox" id="useXClientIp">
+      Envoyer le header X-CLIENT-IP
+    </label>
+  </div>
+
+  <hr>
+
   <div class="row">
     <span class="label">URL API :</span>
     <span id="apiUrl" class="value"></span>
@@ -133,6 +139,9 @@ summary{ cursor:pointer; color:#003366; font-weight:bold; }
 
   <div class="actions">
     <button id="btnTest">Tester SSO (UUID)</button>
+    <button id="btnSwagger">Ouvrir Swagger</button>
+    <button id="btnCurl">Copier CURL</button>
+    <span id="curlCopied" class="copied hidden">Copié</span>
   </div>
 
   <h3>Résultat</h3>
@@ -212,7 +221,6 @@ function renderSsoResult(data){
   var badges = document.getElementById("badgesOptions");
   var tblVars = document.getElementById("tblVariables");
 
-  // reset
   tblId.innerHTML = "";
   badges.innerHTML = "";
   tblVars.innerHTML = "";
@@ -220,9 +228,7 @@ function renderSsoResult(data){
 
   if(!data || typeof data !== "object") return;
 
-  // Identité (nested) + fallback flat
   var identObj = (data.Identite && typeof data.Identite === "object") ? data.Identite : null;
-
   var typeVal   = identObj ? identObj.Type   : data.Type;
   var codeVal   = identObj ? identObj.Code   : data.Code;
   var emailVal  = identObj ? identObj.Email  : data.Email;
@@ -249,8 +255,7 @@ function renderSsoResult(data){
   });
   tblId.innerHTML = rowsId || "<tr><td>Aucune donnée</td></tr>";
 
-  // VariablesSession
-  var vars = data.VariablesSession || data.VariablesSessionWeb || data.variablesSession;
+  var vars = data.VariablesSession;
   if(vars && typeof vars === "object"){
     var rowsV = "";
     Object.keys(vars).forEach(function(k){
@@ -261,7 +266,6 @@ function renderSsoResult(data){
     tblVars.innerHTML = "<tr><td>Aucune variable</td></tr>";
   }
 
-  // OptionsWeb
   if(Array.isArray(data.OptionsWeb) && data.OptionsWeb.length){
     data.OptionsWeb.forEach(function(o){
       var lib = (o && (o.Libelle ?? o.libelle)) ?? "";
@@ -280,11 +284,11 @@ function renderSsoResult(data){
   formatted.classList.remove("hidden");
 }
 
-/* ---- Lecture contexte ---- */
+/* ---- Contexte ---- */
 var referrer = document.referrer || "";
 var params = new URLSearchParams(window.location.search);
 
-// ✅ Insensible à la casse pour CNX/UUID
+// ✅ CNX/UUID insensible à la casse
 var cnx = "";
 var uuid = "";
 params.forEach(function(value,key){
@@ -301,13 +305,19 @@ document.getElementById("cnx").textContent = cnx || "Non présent";
 document.getElementById("uuid").textContent = uuid || "Non présent";
 document.getElementById("btnCopyUuid").disabled = !uuidValid;
 
+// URL API : ?api=... override sinon referrer
+var apiOverride = params.get("api");
 var apiUrl = null;
-if(referrer && cnx){
+
+if(apiOverride){
+  apiUrl = normalize(apiOverride);
+} else if(referrer && cnx){
   try{
     var r = new URL(referrer);
     apiUrl = normalize(r.origin + "/" + cnx + "/api");
   }catch(e){}
 }
+
 document.getElementById("apiUrl").textContent = apiUrl || "Non disponible";
 
 var portalUrl = null;
@@ -319,33 +329,59 @@ document.getElementById("portalUrl").textContent = portalUrl || "Non disponible"
 document.getElementById("btnPortal").disabled = !portalUrl;
 document.getElementById("btnCopyPortal").disabled = !portalUrl;
 
+function getContext(){
+  return {
+    apiUrl: apiUrl,
+    uuid: uuidValid ? uuid : null,
+    xClientIp: document.getElementById("xClientIp").value.trim(),
+    sendXClientIp: document.getElementById("useXClientIp").checked
+  };
+}
+
 var autoTriggered = false;
+var autoTestDone = false;
+
+function maybeAutoTest(){
+  if(autoTestDone) return;
+  if(referrer && cnx && uuidValid){
+    autoTestDone = true;
+    autoTriggered = true;
+    showAutoBadge();
+    testSSO();
+  }
+}
 
 function testSSO(){
+  var ctx = getContext();
   var title = document.getElementById("resultTitle");
   var result = document.getElementById("result");
 
-  // reset
   title.innerHTML = "";
   result.textContent = "";
   document.getElementById("resultFormatted").classList.add("hidden");
 
-  if(!apiUrl){
+  if(!ctx.apiUrl){
     title.innerHTML = "<span class='err'>URL API non disponible</span>";
     return;
   }
-  if(!uuidValid){
+  if(!ctx.uuid){
     title.innerHTML = "<span class='err'>UUID invalide</span>";
     return;
   }
 
-  fetch(apiUrl + "/v1/authentification/uuid",{
+  var headers = {
+    "accept":"text/plain",
+    "Content-Type":"application/json-patch+json"
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  fetch(normalize(ctx.apiUrl) + "/v1/authentification/uuid",{
     method:"POST",
-    headers:{
-      "accept":"text/plain",
-      "Content-Type":"application/json-patch+json"
-    },
-    body:JSON.stringify({UUID:uuid})
+    headers: headers,
+    body: JSON.stringify({UUID: ctx.uuid})
   })
   .then(function(r){
     return r.text().then(function(t){
@@ -362,7 +398,6 @@ function testSSO(){
 
     title.innerHTML = "<span class='ok'>Connexion SSO valide</span>";
 
-    // format
     try{
       var parsed = JSON.parse(res.text);
       renderSsoResult(parsed);
@@ -370,7 +405,6 @@ function testSSO(){
       document.getElementById("resultFormatted").classList.add("hidden");
     }
 
-    // auto badge hide
     if(autoTriggered){
       setTimeout(hideAutoBadge, 2000);
     }
@@ -381,25 +415,56 @@ function testSSO(){
   });
 }
 
+function openSwagger(){
+  if(!apiUrl) return;
+  window.open(normalize(apiUrl) + "/swagger/index.html", "_blank");
+}
+
+function copyCurl(){
+  var ctx = getContext();
+  if(!ctx.apiUrl || !ctx.uuid) return;
+
+  var curl = "curl -X 'POST' \\\n" +
+    "  '"+normalize(ctx.apiUrl)+"/v1/authentification/uuid' \\\n" +
+    "  -H 'accept: text/plain' \\\n";
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    curl += "  -H 'X-CLIENT-IP: "+ctx.xClientIp+"' \\\n";
+  }
+
+  curl += "  -H 'Content-Type: application/json-patch+json' \\\n" +
+    "  -d '{\n  \"UUID\": \""+ctx.uuid+"\"\n}'";
+
+  copyText(curl, "curlCopied");
+}
+
 /* ---- Events ---- */
 document.getElementById("btnTest").addEventListener("click", testSSO);
+document.getElementById("btnSwagger").addEventListener("click", openSwagger);
+document.getElementById("btnCurl").addEventListener("click", copyCurl);
+
 document.getElementById("btnCopyUuid").addEventListener("click", function(){
-  if(uuidValid) copyText(uuid,"uuidCopied");
+  if(uuidValid) copyText(uuid, "uuidCopied");
 });
 document.getElementById("btnCopyPortal").addEventListener("click", function(){
-  if(portalUrl) copyText(portalUrl,"portalCopied");
+  if(portalUrl) copyText(portalUrl, "portalCopied");
 });
 document.getElementById("btnPortal").addEventListener("click", function(){
-  if(portalUrl) window.open(portalUrl,"_blank");
+  if(portalUrl) window.open(portalUrl, "_blank");
 });
 
-/* ---- Auto-test ---- */
-window.addEventListener("load", function(){
-  if(referrer && cnx && uuidValid){
-    autoTriggered = true;
-    showAutoBadge();
-    testSSO();
-  }
+/* ✅ IP navigateur (ipify) + auto-test après remplissage si possible */
+fetch("https://api.ipify.org?format=json")
+.then(function(r){ return r.json(); })
+.then(function(d){
+  document.getElementById("browserIp").textContent = d.ip + " (ipify)";
+  document.getElementById("xClientIp").value = d.ip;
+  maybeAutoTest();
+})
+.catch(function(){
+  document.getElementById("browserIp").textContent = "Non disponible";
+  // même si ipify échoue, on peut auto-tester
+  maybeAutoTest();
 });
 
 })();
