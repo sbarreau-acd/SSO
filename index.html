@@ -2,8 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Connexion SSO par UUID – V26.03</title>
+<title>Connexion SSO par UUID</title>
 
+<!-- Favicon inline -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
 %3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
 %3Ctext y='0.9em' font-size='90'%3E🔑%3C/text%3E
@@ -19,19 +20,27 @@ body { font-family: Arial; padding:40px; background:#f5f6f8; }
 .label { font-weight:bold; width:170px; display:inline-block; }
 .value { color:#003366; word-break:break-all; }
 
+input[type="text"] { padding:6px 8px; border:1px solid #ccc; border-radius:6px; min-width:280px; }
+
 button { background:#003366; color:white; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; }
 button:disabled { opacity:0.5; cursor:not-allowed; }
+
+.actions { margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+.ok { color:#0b6b2e; font-weight:bold; }
+.err { color:#b00020; font-weight:bold; }
 
 .small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
 .copied { color:#0b6b2e; font-weight:bold; margin-left:10px; font-size:12px; }
 .hidden { display:none; }
-.ok { color:#0b6b2e; font-weight:bold; }
-.err { color:#b00020; font-weight:bold; }
+.hint { font-size:12px; color:#666; margin-top:4px; }
 
+/* Alignement URL portail */
 .row-portal{ display:flex; align-items:center; gap:10px; }
 .row-portal .value{ flex:1; }
-.portal-actions{ display:flex; gap:8px; }
+.portal-actions{ display:flex; align-items:center; gap:8px; justify-content:flex-end; }
 
+/* Badge auto test */
 .auto-badge{
   display:inline-flex;
   align-items:center;
@@ -50,14 +59,17 @@ button:disabled { opacity:0.5; cursor:not-allowed; }
 }
 .auto-badge.show{ opacity:1; transform:translateY(0); }
 
+/* --- Résultat formaté --- */
 .result-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin:10px 0 12px; }
 .card{ background:#f7f8fb; border:1px solid #e2e6ef; border-radius:8px; padding:12px; }
 .card h4{ margin:0 0 10px; font-size:14px; color:#003366; }
 .table{ width:100%; border-collapse:collapse; font-size:12.5px; }
-.table th,.table td{ border:1px solid #e2e6ef; padding:6px 8px; text-align:left; }
-.table th{ background:#eef2fa; width:200px; }
+.table th,.table td{ border:1px solid #e2e6ef; padding:6px 8px; text-align:left; vertical-align:top; }
+.table th{ background:#eef2fa; color:#1f2a44; width:220px; }
 
 .badges{ display:flex; flex-wrap:wrap; gap:6px; }
+
+/* ✅ Bulles cliquables OptionsWeb */
 .badge-btn{
   border:0;
   cursor:pointer;
@@ -69,19 +81,28 @@ button:disabled { opacity:0.5; cursor:not-allowed; }
 .badge-btn.on{ background:#0b6b2e; }
 .badge-btn.off{ background:#6b7280; cursor:default; opacity:.85; }
 
-/* JSON formatting */
+details{ margin-top:10px; }
+summary{ cursor:pointer; color:#003366; font-weight:bold; }
+
+/* ✅ Réponse brute : anti-débordement + scroll vertical */
 pre{
   background:#f4f6fa;
   padding:12px;
   border-radius:6px;
   font-size:12px;
+
   white-space:pre-wrap;
   word-break:break-word;
   overflow-wrap:anywhere;
+
   max-height:350px;
   overflow-y:auto;
+  overflow-x:hidden;
+
+  box-sizing:border-box;
 }
 
+/* ✅ Colorisation JSON */
 .json-key{ color:#0b3d91; font-weight:bold; }
 .json-string{ color:#0b6b2e; }
 .json-number{ color:#8a2be2; }
@@ -92,184 +113,521 @@ pre{
 </head>
 
 <body>
-<h2>Connexion SSO depuis portail i-suite – V26.03</h2>
+<h2>Connexion SSO depuis portail i-suite – V26.03 (full)</h2>
 
 <div class="box">
 
-<div class="row"><span class="label">Referrer :</span><span id="referrer" class="value"></span></div>
-<div class="row"><span class="label">cnx :</span><span id="cnx" class="value"></span></div>
+  <div class="row">
+    <span class="label">Referrer :</span>
+    <span id="referrer" class="value"></span>
+  </div>
 
-<div class="row">
-<span class="label">uuid :</span>
-<span id="uuid"></span>
-<button id="btnCopyUuid" class="small-btn">Copier UUID</button>
-<span id="uuidCopied" class="copied hidden">Copié</span>
-</div>
+  <div class="row">
+    <span class="label">cnx :</span>
+    <span id="cnx" class="value"></span>
+  </div>
 
-<hr>
+  <div class="row">
+    <span class="label">uuid :</span>
+    <span id="uuid"></span>
+    <button id="btnCopyUuid" class="small-btn">Copier UUID</button>
+    <span id="uuidCopied" class="copied hidden">Copié</span>
+  </div>
 
-<div class="row"><span class="label">IP Navigateur :</span><span id="browserIp"></span></div>
-<div class="row"><span class="label">X-CLIENT-IP :</span><input type="text" id="xClientIp"></div>
-<div class="row"><label><input type="checkbox" id="useXClientIp"> Envoyer le header X-CLIENT-IP</label></div>
+  <hr>
 
-<hr>
+  <div class="row">
+    <span class="label">IP Navigateur :</span>
+    <span id="browserIp" class="value"></span>
+  </div>
 
-<div class="row"><span class="label">URL API :</span><span id="apiUrl"></span></div>
+  <div class="row">
+    <span class="label">X-CLIENT-IP :</span>
+    <input type="text" id="xClientIp">
+  </div>
 
-<div class="row row-portal">
-<span class="label">URL Portail :</span>
-<span id="portalUrl" class="value"></span>
-<div class="portal-actions">
-<button id="btnCopyPortal" class="small-btn">Copier</button>
-<button id="btnPortal" class="small-btn">Ouvrir</button>
-<span id="portalCopied" class="copied hidden">Copié</span>
-</div>
-</div>
+  <div class="row">
+    <label>
+      <input type="checkbox" id="useXClientIp">
+      Envoyer le header X-CLIENT-IP
+    </label>
+  </div>
 
-<button id="btnTest">Tester SSO (UUID)</button>
+  <hr>
 
-<h3>Résultat</h3>
-<div id="resultTitle"></div>
-<div id="autoIndicator" class="auto-badge hidden">⚡ Auto test déclenché</div>
+  <div class="row">
+    <span class="label">URL API :</span>
+    <span id="apiUrl" class="value"></span>
+  </div>
 
-<div id="resultFormatted" class="hidden">
-<div class="result-grid">
-<div class="card"><h4>Identité</h4><table class="table" id="tblIdentite"></table></div>
-<div class="card"><h4>Variables de session</h4><table class="table" id="tblVariables"></table></div>
-</div>
-<div class="card"><h4>Options Web</h4><div class="badges" id="badgesOptions"></div></div>
-</div>
+  <div class="row row-portal">
+    <span class="label">URL Portail :</span>
+    <span id="portalUrl" class="value"></span>
 
-<details>
-<summary>Réponse brute</summary>
-<div style="margin:10px 0;">
-<button id="btnCopyJson" class="small-btn">Copier JSON</button>
-<span id="jsonCopied" class="copied hidden">Copié</span>
-</div>
-<pre id="result"></pre>
-</details>
+    <div class="portal-actions">
+      <button id="btnCopyPortal" class="small-btn">Copier</button>
+      <button id="btnPortal" class="small-btn">Ouvrir</button>
+      <span id="portalCopied" class="copied hidden">Copié</span>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="btnTest">Tester SSO (UUID)</button>
+    <button id="btnSwagger">Ouvrir Swagger</button>
+    <button id="btnCurl">Copier CURL</button>
+    <span id="curlCopied" class="copied hidden">Copié</span>
+  </div>
+
+  <h3>Résultat</h3>
+  <div id="resultTitle"></div>
+  <div id="autoIndicator" class="auto-badge hidden">⚡ Auto test déclenché</div>
+
+  <!-- Résultat formaté -->
+  <div id="resultFormatted" class="hidden">
+    <div class="result-grid">
+      <div class="card">
+        <h4>Identité</h4>
+        <table class="table" id="tblIdentite"></table>
+      </div>
+      <div class="card">
+        <h4>Variables de session</h4>
+        <table class="table" id="tblVariables"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Options Web</h4>
+      <div class="badges" id="badgesOptions"></div>
+    </div>
+  </div>
+
+  <details>
+    <summary>Réponse brute</summary>
+
+    <div style="margin:10px 0; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button id="btnCopyJson" class="small-btn">Copier JSON</button>
+      <span id="jsonCopied" class="copied hidden">Copié</span>
+    </div>
+
+    <pre id="result"></pre>
+  </details>
 
 </div>
 
 <script>
 (function(){
 
+/* ---------- Utils ---------- */
 function normalize(u){ return (u||"").replace(/\/+$/,""); }
-function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+function escapeHtml(s){
+  return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+  });
+}
+
+function showCopied(id){
+  var el = document.getElementById(id);
+  el.classList.remove("hidden");
+  setTimeout(function(){ el.classList.add("hidden"); }, 2000);
+}
 
 function copyText(text,id){
-if(!text) return;
-var ta=document.createElement("textarea");
-ta.value=text;
-document.body.appendChild(ta);
-ta.select();
-document.execCommand("copy");
-document.body.removeChild(ta);
-document.getElementById(id).classList.remove("hidden");
-setTimeout(()=>document.getElementById(id).classList.add("hidden"),2000);
+  if(!text) return;
+  var ta=document.createElement("textarea");
+  ta.value=text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  showCopied(id);
 }
 
-function prettyJson(raw){
-try{ return {json:true,text:JSON.stringify(JSON.parse(raw),null,2)}; }
-catch(e){ return {json:false,text:raw}; }
+function showAutoBadge(){
+  var b=document.getElementById("autoIndicator");
+  b.classList.remove("hidden");
+  b.offsetHeight;
+  b.classList.add("show");
 }
 
-function highlight(jsonText,isJson){
-if(!isJson) return "<span class='json-error'>Réponse non JSON</span>\n"+escapeHtml(jsonText);
-let j=escapeHtml(jsonText);
-j=j.replace(/(&quot;.*?&quot;)(\s*:)/g,"<span class='json-key'>$1</span>$2");
-j=j.replace(/(:\s*)(&quot;.*?&quot;)/g,"$1<span class='json-string'>$2</span>");
-j=j.replace(/(:\s*)(-?\d+(\.\d+)?)/g,"$1<span class='json-number'>$2</span>");
-j=j.replace(/(:\s*)(true|false)/g,"$1<span class='json-boolean'>$2</span>");
-j=j.replace(/(:\s*)(null)/g,"$1<span class='json-null'>$2</span>");
-return j;
+function hideAutoBadge(){
+  var b=document.getElementById("autoIndicator");
+  b.classList.remove("show");
+  setTimeout(function(){ b.classList.add("hidden"); }, 250);
 }
 
-var lastPretty="";
-function setResult(text){
-var r=prettyJson(text);
-lastPretty=r.text;
-document.getElementById("result").innerHTML=highlight(r.text,r.json);
+/* ---------- JSON pretty + highlight + copy ---------- */
+var lastPrettyJsonText = "";
+
+function prettyJsonOrText(rawText){
+  try{
+    var obj = JSON.parse(rawText);
+    return { isJson: true, prettyText: JSON.stringify(obj, null, 2) };
+  }catch(e){
+    return { isJson: false, prettyText: rawText };
+  }
 }
 
-var referrer=document.referrer||"";
-var params=new URLSearchParams(window.location.search);
-var cnx="", uuid="";
-params.forEach((v,k)=>{k=k.toLowerCase(); if(k==="cnx") cnx=v; if(k==="uuid") uuid=v;});
-uuid=(uuid||"").replace(/\/$/,"");
-var uuidValid=/^[a-z0-9]+$/i.test(uuid);
+function highlightJson(prettyText, isJson){
+  if(!isJson){
+    return "<span class='json-error'>Réponse non JSON</span>\n" + escapeHtml(prettyText);
+  }
 
-document.getElementById("referrer").textContent=referrer||"Aucun";
-document.getElementById("cnx").textContent=cnx||"Non présent";
-document.getElementById("uuid").textContent=uuid||"Non présent";
-document.getElementById("btnCopyUuid").disabled=!uuidValid;
+  var json = escapeHtml(prettyText);
 
-var apiUrl=null;
-if(referrer&&cnx){ try{ apiUrl=normalize(new URL(referrer).origin+"/"+cnx+"/api"); }catch(e){} }
-document.getElementById("apiUrl").textContent=apiUrl||"Non disponible";
+  // clés: "xxx":
+  json = json.replace(/(&quot;.*?&quot;)(\s*:\s*)/g, function(_, key, sep){
+    return "<span class='json-key'>" + key + "</span>" + sep;
+  });
 
-var portalUrl=null;
-if(apiUrl&&uuidValid) portalUrl=new URL(apiUrl).origin+"/"+cnx+"/isuiteexpert/?UUID="+encodeURIComponent(uuid);
-document.getElementById("portalUrl").textContent=portalUrl||"Non disponible";
-document.getElementById("btnPortal").disabled=!portalUrl;
-document.getElementById("btnCopyPortal").disabled=!portalUrl;
+  // strings: "..."
+  json = json.replace(/(:\s*)(&quot;.*?&quot;)/g, function(_, sep, str){
+    return sep + "<span class='json-string'>" + str + "</span>";
+  });
 
-fetch("https://api.ipify.org?format=json")
-.then(r=>r.json())
-.then(d=>{
-document.getElementById("browserIp").textContent=d.ip+" (ipify)";
-document.getElementById("xClientIp").value=d.ip;
+  // numbers
+  json = json.replace(/(:\s*)(-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g, function(_, sep, num){
+    return sep + "<span class='json-number'>" + num + "</span>";
+  });
+
+  // booleans
+  json = json.replace(/(:\s*)(true|false)\b/g, function(_, sep, b){
+    return sep + "<span class='json-boolean'>" + b + "</span>";
+  });
+
+  // null
+  json = json.replace(/(:\s*)(null)\b/g, function(_, sep, n){
+    return sep + "<span class='json-null'>" + n + "</span>";
+  });
+
+  return json;
+}
+
+function setRawResult(text){
+  var pre = document.getElementById("result");
+  var r = prettyJsonOrText(text);
+  lastPrettyJsonText = r.prettyText;
+  pre.innerHTML = highlightJson(r.prettyText, r.isJson);
+  document.getElementById("btnCopyJson").disabled = !lastPrettyJsonText;
+}
+
+/* ---------- Read context (case-insensitive CNX/UUID) ---------- */
+var referrer = document.referrer || "";
+var params = new URLSearchParams(window.location.search);
+
+var cnx = "";
+var uuid = "";
+params.forEach(function(value,key){
+  var k = (key || "").toLowerCase();
+  if(k === "cnx") cnx = value;
+  if(k === "uuid") uuid = value;
 });
+
+uuid = (uuid || "").replace(/\/$/,"");
+var uuidValid = /^[a-z0-9]+$/i.test(uuid);
+
+document.getElementById("referrer").textContent = referrer || "Aucun";
+document.getElementById("cnx").textContent = cnx || "Non présent";
+document.getElementById("uuid").textContent = uuid || "Non présent";
+document.getElementById("btnCopyUuid").disabled = !uuidValid;
+
+/* API override ?api=... sinon via referrer */
+var apiOverride = params.get("api");
+var apiUrl = null;
+
+if(apiOverride){
+  apiUrl = normalize(apiOverride);
+} else if(referrer && cnx){
+  try{
+    var r = new URL(referrer);
+    apiUrl = normalize(r.origin + "/" + cnx + "/api");
+  }catch(e){}
+}
+
+document.getElementById("apiUrl").textContent = apiUrl || "Non disponible";
+
+/* Portal URL */
+var portalUrl = null;
+if(apiUrl && uuidValid){
+  var origin = new URL(apiUrl).origin;
+  portalUrl = origin + "/" + cnx + "/isuiteexpert/?UUID=" + encodeURIComponent(uuid);
+}
+
+document.getElementById("portalUrl").textContent = portalUrl || "Non disponible";
+document.getElementById("btnPortal").disabled = !portalUrl;
+document.getElementById("btnCopyPortal").disabled = !portalUrl;
+
+/* ---------- Render formatted result ---------- */
+function renderSsoResult(data){
+  var formatted = document.getElementById("resultFormatted");
+  var tblId = document.getElementById("tblIdentite");
+  var badges = document.getElementById("badgesOptions");
+  var tblVars = document.getElementById("tblVariables");
+
+  tblId.innerHTML = "";
+  badges.innerHTML = "";
+  tblVars.innerHTML = "";
+  formatted.classList.add("hidden");
+
+  if(!data || typeof data !== "object") return;
+
+  // Identité (nested) + fallback flat
+  var identObj = (data.Identite && typeof data.Identite === "object") ? data.Identite : null;
+  var typeVal   = identObj ? identObj.Type   : data.Type;
+  var codeVal   = identObj ? identObj.Code   : data.Code;
+  var emailVal  = identObj ? identObj.Email  : data.Email;
+  var prenomVal = identObj ? identObj.Prenom : data.Prenom;
+  var nomVal    = identObj ? identObj.Nom    : data.Nom;
+
+  var rowsId = "";
+  [
+    ["Type", typeVal],
+    ["Code", codeVal],
+    ["Email", emailVal],
+    ["Prenom", prenomVal],
+    ["Nom", nomVal]
+  ].forEach(function(pair){
+    var key = pair[0];
+    var val = pair[1];
+    if(val === undefined || val === null || val === "") return;
+
+    var valHtml = escapeHtml(val);
+    if(key === "Type" || key === "Code"){
+      valHtml = "<strong>" + valHtml + "</strong>";
+    }
+    rowsId += "<tr><th>"+escapeHtml(key)+"</th><td>"+valHtml+"</td></tr>";
+  });
+  tblId.innerHTML = rowsId || "<tr><td>Aucune donnée</td></tr>";
+
+  // VariablesSession
+  var vars = data.VariablesSession;
+  if(vars && typeof vars === "object"){
+    var rowsV = "";
+    Object.keys(vars).forEach(function(k){
+      rowsV += "<tr><th>"+escapeHtml(k)+"</th><td>"+escapeHtml(vars[k])+"</td></tr>";
+    });
+    tblVars.innerHTML = rowsV || "<tr><td>Aucune variable</td></tr>";
+  } else {
+    tblVars.innerHTML = "<tr><td>Aucune variable</td></tr>";
+  }
+
+  // OptionsWeb -> bulles vertes cliquables selon table
+  var CMD_MAP = [
+    { startsWith: "i-Admin",        cmd: "IADMIN" },
+    { startsWith: "i-Ged",          cmd: "IGED" },
+    { startsWith: "i-Dépôt",        cmd: "IDEPOT" },
+    { startsWith: "i-Comptes",      cmd: "ICOMPTES" },
+    { startsWith: "i-Banque",       cmd: "IBANQUE" },
+    { startsWith: "i-Comptabilité", cmd: "comptaentreprise" },
+    { startsWith: "i-Facture",      cmd: "IFACTURE" },
+    { startsWith: "i-Dossier",      cmd: "IDOSSIER" },
+    { startsWith: "i-Stats",        cmd: "ISTATS" }
+  ];
+
+  function resolveCmd(libelle){
+    var l = String(libelle || "").trim();
+    for(var i=0;i<CMD_MAP.length;i++){
+      if(l.toLowerCase().startsWith(CMD_MAP[i].startsWith.toLowerCase())){
+        return CMD_MAP[i].cmd;
+      }
+    }
+    return null;
+  }
+
+  function openCmd(cmd){
+    if(!portalUrl) return;
+    var url = portalUrl + "&CMD=" + encodeURIComponent(cmd);
+    window.open(url, "_blank");
+  }
+
+  if(Array.isArray(data.OptionsWeb) && data.OptionsWeb.length){
+    data.OptionsWeb.forEach(function(o){
+      var lib = (o && (o.Libelle ?? o.libelle)) ?? "";
+      var val = (o && (o.Valeur ?? o.valeur)) ?? "";
+
+      var isFalse = (val === false || val === "false" || val === 0 || val === "0");
+      var cmd = resolveCmd(lib);
+
+      if(cmd && !isFalse && portalUrl){
+        badges.insertAdjacentHTML(
+          "beforeend",
+          "<button type='button' class='badge-btn on' data-cmd='"+escapeHtml(cmd)+"' " +
+          "title='Ouvrir : "+escapeHtml(portalUrl)+"&CMD="+escapeHtml(cmd)+"'>" +
+          escapeHtml(String(lib).trim()) +
+          "</button>"
+        );
+      } else {
+        badges.insertAdjacentHTML(
+          "beforeend",
+          "<button type='button' class='badge-btn off' disabled " +
+          "title='Non disponible (non mappée, désactivée, ou URL Portail indisponible)'>" +
+          escapeHtml(String(lib || "Option").trim()) +
+          "</button>"
+        );
+      }
+    });
+
+    // délégation clic
+    badges.onclick = function(ev){
+      var btn = ev.target && ev.target.closest ? ev.target.closest("button[data-cmd]") : null;
+      if(!btn) return;
+      var cmd = btn.getAttribute("data-cmd");
+      if(cmd) openCmd(cmd);
+    };
+
+  } else {
+    badges.insertAdjacentHTML("beforeend","<span class='hint'>Aucune option</span>");
+  }
+
+  formatted.classList.remove("hidden");
+}
+
+/* ---------- SSO call ---------- */
+function getContext(){
+  return {
+    apiUrl: apiUrl,
+    uuid: uuidValid ? uuid : null,
+    xClientIp: document.getElementById("xClientIp").value.trim(),
+    sendXClientIp: document.getElementById("useXClientIp").checked
+  };
+}
+
+var autoTriggered = false;
+var autoTestDone = false;
+
+function maybeAutoTest(){
+  if(autoTestDone) return;
+  if(referrer && cnx && uuidValid){
+    autoTestDone = true;
+    autoTriggered = true;
+    showAutoBadge();
+    testSSO();
+  }
+}
 
 function testSSO(){
-if(!apiUrl||!uuidValid) return;
-fetch(apiUrl+"/v1/authentification/uuid",{
-method:"POST",
-headers:{"Content-Type":"application/json-patch+json"},
-body:JSON.stringify({UUID:uuid})
+  var ctx = getContext();
+  var title = document.getElementById("resultTitle");
+
+  title.innerHTML = "";
+  setRawResult("");
+  document.getElementById("resultFormatted").classList.add("hidden");
+
+  if(!ctx.apiUrl){
+    title.innerHTML = "<span class='err'>URL API non disponible</span>";
+    return;
+  }
+  if(!ctx.uuid){
+    title.innerHTML = "<span class='err'>UUID invalide</span>";
+    return;
+  }
+
+  var headers = {
+    "accept":"text/plain",
+    "Content-Type":"application/json-patch+json"
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  fetch(normalize(ctx.apiUrl) + "/v1/authentification/uuid",{
+    method:"POST",
+    headers: headers,
+    body: JSON.stringify({UUID: ctx.uuid})
+  })
+  .then(function(r){
+    return r.text().then(function(t){
+      return {ok:r.ok,status:r.status,text:t};
+    });
+  })
+  .then(function(res){
+    setRawResult(res.text);
+
+    if(!res.ok){
+      title.innerHTML = "<span class='err'>Erreur HTTP " + res.status + "</span>";
+      return;
+    }
+
+    title.innerHTML = "<span class='ok'>Connexion SSO valide</span>";
+
+    try{
+      var parsed = JSON.parse(res.text);
+      renderSsoResult(parsed);
+    }catch(e){
+      document.getElementById("resultFormatted").classList.add("hidden");
+    }
+
+    if(autoTriggered){
+      setTimeout(hideAutoBadge, 2000);
+    }
+  })
+  .catch(function(e){
+    title.innerHTML = "<span class='err'>Erreur réseau / CORS</span>";
+    setRawResult(e.message);
+    document.getElementById("resultFormatted").classList.add("hidden");
+  });
+}
+
+/* ---------- Swagger + Curl ---------- */
+function openSwagger(){
+  if(!apiUrl) return;
+  window.open(normalize(apiUrl) + "/swagger/index.html", "_blank");
+}
+
+function copyCurl(){
+  var ctx = getContext();
+  if(!ctx.apiUrl || !ctx.uuid) return;
+
+  var curl = "curl -X 'POST' \\\n" +
+    "  '"+normalize(ctx.apiUrl)+"/v1/authentification/uuid' \\\n" +
+    "  -H 'accept: text/plain' \\\n";
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    curl += "  -H 'X-CLIENT-IP: "+ctx.xClientIp+"' \\\n";
+  }
+
+  curl += "  -H 'Content-Type: application/json-patch+json' \\\n" +
+    "  -d '{\n  \"UUID\": \""+ctx.uuid+"\"\n}'";
+
+  copyText(curl, "curlCopied");
+}
+
+/* ---------- Events ---------- */
+document.getElementById("btnTest").addEventListener("click", testSSO);
+document.getElementById("btnSwagger").addEventListener("click", openSwagger);
+document.getElementById("btnCurl").addEventListener("click", copyCurl);
+
+document.getElementById("btnCopyUuid").addEventListener("click", function(){
+  if(uuidValid) copyText(uuid, "uuidCopied");
+});
+
+document.getElementById("btnCopyPortal").addEventListener("click", function(){
+  if(portalUrl) copyText(portalUrl, "portalCopied");
+});
+
+document.getElementById("btnPortal").addEventListener("click", function(){
+  if(portalUrl) window.open(portalUrl, "_blank");
+});
+
+document.getElementById("btnCopyJson").addEventListener("click", function(){
+  if(!lastPrettyJsonText) return;
+  copyText(lastPrettyJsonText, "jsonCopied");
+});
+
+/* ---------- IP (ipify) then auto-test ---------- */
+document.getElementById("browserIp").textContent = "Chargement...";
+fetch("https://api.ipify.org?format=json")
+.then(function(r){ return r.json(); })
+.then(function(d){
+  document.getElementById("browserIp").textContent = d.ip + " (ipify)";
+  document.getElementById("xClientIp").value = d.ip;
+  maybeAutoTest();
 })
-.then(r=>r.text().then(t=>({ok:r.ok,text:t})))
-.then(res=>{
-setResult(res.text);
-if(res.ok){
-document.getElementById("resultTitle").innerHTML="<span class='ok'>Connexion SSO valide</span>";
-renderOptions(JSON.parse(res.text));
-}else{
-document.getElementById("resultTitle").innerHTML="<span class='err'>Erreur</span>";
-}
+.catch(function(){
+  document.getElementById("browserIp").textContent = "Non disponible";
+  maybeAutoTest();
 });
-}
-
-function renderOptions(data){
-var badges=document.getElementById("badgesOptions");
-badges.innerHTML="";
-const CMD_MAP={
-"i-Admin":"IADMIN","i-Ged":"IGED","i-Dépôt":"IDEPOT",
-"i-Comptes":"ICOMPTES","i-Banque":"IBANQUE",
-"i-Comptabilité":"comptaentreprise",
-"i-Facture":"IFACTURE","i-Dossier":"IDOSSIER","i-Stats":"ISTATS"
-};
-if(Array.isArray(data.OptionsWeb)){
-data.OptionsWeb.forEach(o=>{
-let lib=o.Libelle||"";
-let cmd=null;
-Object.keys(CMD_MAP).forEach(k=>{
-if(lib.toLowerCase().startsWith(k.toLowerCase())) cmd=CMD_MAP[k];
-});
-if(cmd&&portalUrl){
-badges.innerHTML+=`<button class="badge-btn on" onclick="window.open('${portalUrl}&CMD=${cmd}','_blank')">${escapeHtml(lib)}</button>`;
-}else{
-badges.innerHTML+=`<button class="badge-btn off" disabled>${escapeHtml(lib)}</button>`;
-}
-});
-}
-}
-
-document.getElementById("btnTest").addEventListener("click",testSSO);
-document.getElementById("btnCopyUuid").addEventListener("click",()=>copyText(uuid,"uuidCopied"));
-document.getElementById("btnCopyPortal").addEventListener("click",()=>copyText(portalUrl,"portalCopied"));
-document.getElementById("btnPortal").addEventListener("click",()=>window.open(portalUrl,"_blank"));
-document.getElementById("btnCopyJson").addEventListener("click",()=>copyText(lastPretty,"jsonCopied"));
 
 })();
 </script>
