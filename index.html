@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>connexion SSO par UUID</title>
+<meta name="referrer" content="strict-origin-when-cross-origin">
+
+<style>
+body { font-family: Arial; padding:40px; background:#f5f6f8; }
+.box { background:#fff; padding:20px; border-radius:8px; max-width:1100px; border:1px solid #ddd; }
+.row { margin-bottom:12px; }
+.label { font-weight:bold; width:170px; display:inline-block; }
+.value { color:#003366; word-break:break-all; }
+input[type="text"] { padding:6px 8px; border:1px solid #ccc; border-radius:6px; min-width:280px; }
+button { background:#003366; color:white; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; }
+button:disabled { opacity:0.5; cursor:not-allowed; }
+.actions { margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white-space:pre-wrap; }
+.ok { color:#0b6b2e; font-weight:bold; }
+.err { color:#b00020; font-weight:bold; }
+.small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
+.copied { color:#0b6b2e; font-weight:bold; margin-left:10px; font-size:12px; }
+.hidden { display:none; }
+
+/* Badge auto test */
+.auto-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#e6f4ea;
+  color:#0b6b2e;
+  border:1px solid #0b6b2e;
+  padding:4px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+  margin-top:10px;
+  opacity:0;
+  transform:translateY(-4px);
+  transition:opacity .3s ease, transform .3s ease;
+}
+.auto-badge.show{
+  opacity:1;
+  transform:translateY(0);
+}
+</style>
+</head>
+
+<body>
+
+<h2>Connexion SSO depuis portail i-suite</h2>
+
+<div class="box">
+
+<div class="row">
+<span class="label">Referrer :</span>
+<span id="referrer" class="value"></span>
+</div>
+
+<div class="row">
+<span class="label">cnx :</span>
+<span id="cnx" class="value"></span>
+</div>
+
+<div class="row">
+<span class="label">uuid :</span>
+<span id="uuid"></span>
+<button id="btnCopyUuid" class="small-btn">Copier UUID</button>
+<span id="uuidCopied" class="copied hidden">Copié</span>
+</div>
+
+<hr>
+
+<div class="actions">
+<button id="btnTest">Tester SSO (UUID)</button>
+</div>
+
+<h3>Résultat</h3>
+<div id="resultTitle"></div>
+
+<div id="autoIndicator" class="auto-badge hidden">
+⚡ Auto test déclenché
+</div>
+
+<pre id="result"></pre>
+
+</div>
+
+<script>
+(function(){
+
+function showCopied(id){
+ var el = document.getElementById(id);
+ el.classList.remove("hidden");
+ setTimeout(function(){ el.classList.add("hidden"); }, 2000);
+}
+
+function copyText(text, id){
+ var ta = document.createElement("textarea");
+ ta.value = text;
+ document.body.appendChild(ta);
+ ta.select();
+ document.execCommand("copy");
+ document.body.removeChild(ta);
+ showCopied(id);
+}
+
+var referrer = document.referrer || "";
+var params = new URLSearchParams(window.location.search);
+
+var cnx = params.get("cnx") || "";
+var uuid = params.get("uuid") || "";
+
+if(uuid.endsWith("/")) uuid = uuid.slice(0,-1);
+
+var uuidValid = /^[a-z0-9]+$/i.test(uuid);
+
+document.getElementById("referrer").textContent = referrer || "Aucun";
+document.getElementById("cnx").textContent = cnx || "Non présent";
+document.getElementById("uuid").textContent = uuid || "Non présent";
+
+var apiUrl = null;
+if(referrer && cnx){
+ try{
+   var r = new URL(referrer);
+   apiUrl = r.origin + "/" + cnx + "/api";
+ }catch(e){}
+}
+
+var autoTriggered = false;
+
+function testSSO(){
+
+ var title = document.getElementById("resultTitle");
+ var result = document.getElementById("result");
+
+ result.textContent = "";
+ title.innerHTML = "";
+
+ if(!apiUrl){
+   title.innerHTML = "<span class='err'>URL API non disponible</span>";
+   return;
+ }
+
+ if(!uuidValid){
+   title.innerHTML = "<span class='err'>UUID invalide</span>";
+   return;
+ }
+
+ fetch(apiUrl + "/v1/authentification/uuid",{
+   method:"POST",
+   headers:{
+     "accept":"text/plain",
+     "Content-Type":"application/json-patch+json"
+   },
+   body:JSON.stringify({UUID:uuid})
+ })
+ .then(r=>r.text().then(t=>({ok:r.ok,status:r.status,text:t})))
+ .then(res=>{
+   if(!res.ok){
+     title.innerHTML = "<span class='err'>Erreur HTTP "+res.status+"</span>";
+     result.textContent = res.text;
+     return;
+   }
+
+   title.innerHTML = "<span class='ok'>Connexion SSO valide</span>";
+   result.textContent = res.text;
+
+   if(autoTriggered){
+     setTimeout(function(){
+       var badge = document.getElementById("autoIndicator");
+       badge.classList.remove("show");
+       setTimeout(function(){
+         badge.classList.add("hidden");
+       },300);
+     },2000);
+   }
+ })
+ .catch(e=>{
+   title.innerHTML = "<span class='err'>Erreur réseau / CORS</span>";
+   result.textContent = e.message;
+ });
+}
+
+document.getElementById("btnTest").addEventListener("click",testSSO);
+document.getElementById("btnCopyUuid").addEventListener("click",function(){
+ if(uuidValid) copyText(uuid,"uuidCopied");
+});
+
+/* Auto lancement si contexte complet */
+window.addEventListener("load", function(){
+  if(referrer && cnx && uuidValid){
+    setTimeout(function(){
+      autoTriggered = true;
+      var badge = document.getElementById("autoIndicator");
+      badge.classList.remove("hidden");
+      badge.classList.add("show");
+      testSSO();
+    },300);
+  }
+});
+
+})();
+</script>
+
+</body>
+</html>
