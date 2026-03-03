@@ -2,9 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Connexion SSO par UUID</title>
+<title>Connexion SSO par UUID – V26.03</title>
 
-<!-- Favicon inline -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
 %3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
 %3Ctext y='0.9em' font-size='90'%3E🔑%3C/text%3E
@@ -19,30 +18,18 @@ body { font-family: Arial; padding:40px; background:#f5f6f8; }
 .row { margin-bottom:12px; }
 .label { font-weight:bold; width:170px; display:inline-block; }
 .value { color:#003366; word-break:break-all; }
-
-input[type="text"] { padding:6px 8px; border:1px solid #ccc; border-radius:6px; min-width:280px; }
-
 button { background:#003366; color:white; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; }
 button:disabled { opacity:0.5; cursor:not-allowed; }
-
-.actions { margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-
-pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white-space:pre-wrap; }
-
-.ok { color:#0b6b2e; font-weight:bold; }
-.err { color:#b00020; font-weight:bold; }
-
 .small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
 .copied { color:#0b6b2e; font-weight:bold; margin-left:10px; font-size:12px; }
 .hidden { display:none; }
-.hint { font-size:12px; color:#666; margin-top:4px; }
+.ok { color:#0b6b2e; font-weight:bold; }
+.err { color:#b00020; font-weight:bold; }
 
-/* Alignement URL portail */
 .row-portal{ display:flex; align-items:center; gap:10px; }
 .row-portal .value{ flex:1; }
-.portal-actions{ display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+.portal-actions{ display:flex; gap:8px; }
 
-/* Badge auto test */
 .auto-badge{
   display:inline-flex;
   align-items:center;
@@ -61,411 +48,245 @@ pre { background:#f4f6fa; padding:12px; border-radius:6px; font-size:12px; white
 }
 .auto-badge.show{ opacity:1; transform:translateY(0); }
 
-/* --- Résultat formaté --- */
 .result-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin:10px 0 12px; }
 .card{ background:#f7f8fb; border:1px solid #e2e6ef; border-radius:8px; padding:12px; }
 .card h4{ margin:0 0 10px; font-size:14px; color:#003366; }
-.badges{ display:flex; flex-wrap:wrap; gap:6px; }
-.badge{ background:#003366; color:#fff; border-radius:999px; padding:4px 10px; font-size:12px; }
-.badge.off{ background:#6b7280; }
 .table{ width:100%; border-collapse:collapse; font-size:12.5px; }
-.table th,.table td{ border:1px solid #e2e6ef; padding:6px 8px; text-align:left; vertical-align:top; }
-.table th{ background:#eef2fa; color:#1f2a44; width:220px; }
-details{ margin-top:10px; }
-summary{ cursor:pointer; color:#003366; font-weight:bold; }
+.table th,.table td{ border:1px solid #e2e6ef; padding:6px 8px; text-align:left; }
+.table th{ background:#eef2fa; width:200px; }
+
+.badges{ display:flex; flex-wrap:wrap; gap:6px; }
+.badge-btn{
+  border:0;
+  cursor:pointer;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:12px;
+  color:#fff;
+}
+.badge-btn.on{ background:#0b6b2e; }
+.badge-btn.off{ background:#6b7280; cursor:default; opacity:.85; }
 </style>
 </head>
 
 <body>
-
-<h2>Connexion SSO depuis portail i-suite</h2>
-
+<h2>Connexion SSO depuis portail i-suite – V26.03</h2>
 <div class="box">
 
-  <div class="row">
-    <span class="label">Referrer :</span>
-    <span id="referrer" class="value"></span>
-  </div>
+<div class="row">
+<span class="label">Referrer :</span>
+<span id="referrer" class="value"></span>
+</div>
 
-  <div class="row">
-    <span class="label">cnx :</span>
-    <span id="cnx" class="value"></span>
-  </div>
+<div class="row">
+<span class="label">cnx :</span>
+<span id="cnx" class="value"></span>
+</div>
 
-  <div class="row">
-    <span class="label">uuid :</span>
-    <span id="uuid"></span>
-    <button id="btnCopyUuid" class="small-btn">Copier UUID</button>
-    <span id="uuidCopied" class="copied hidden">Copié</span>
-  </div>
+<div class="row">
+<span class="label">uuid :</span>
+<span id="uuid"></span>
+<button id="btnCopyUuid" class="small-btn">Copier UUID</button>
+<span id="uuidCopied" class="copied hidden">Copié</span>
+</div>
 
-  <hr>
+<hr>
 
-  <!-- ✅ Bloc IP / X-CLIENT-IP réintégré -->
-  <div class="row">
-    <span class="label">IP Navigateur :</span>
-    <span id="browserIp" class="value"></span>
-  </div>
+<div class="row">
+<span class="label">IP Navigateur :</span>
+<span id="browserIp" class="value"></span>
+</div>
 
-  <div class="row">
-    <span class="label">X-CLIENT-IP :</span>
-    <input type="text" id="xClientIp">
-  </div>
+<div class="row">
+<span class="label">X-CLIENT-IP :</span>
+<input type="text" id="xClientIp">
+</div>
 
-  <div class="row">
-    <label>
-      <input type="checkbox" id="useXClientIp">
-      Envoyer le header X-CLIENT-IP
-    </label>
-  </div>
+<div class="row">
+<label>
+<input type="checkbox" id="useXClientIp">
+ Envoyer le header X-CLIENT-IP
+</label>
+</div>
 
-  <hr>
+<hr>
 
-  <div class="row">
-    <span class="label">URL API :</span>
-    <span id="apiUrl" class="value"></span>
-  </div>
+<div class="row">
+<span class="label">URL API :</span>
+<span id="apiUrl" class="value"></span>
+</div>
 
-  <div class="row row-portal">
-    <span class="label">URL Portail :</span>
-    <span id="portalUrl" class="value"></span>
+<div class="row row-portal">
+<span class="label">URL Portail :</span>
+<span id="portalUrl" class="value"></span>
+<div class="portal-actions">
+<button id="btnCopyPortal" class="small-btn">Copier</button>
+<button id="btnPortal" class="small-btn">Ouvrir</button>
+<span id="portalCopied" class="copied hidden">Copié</span>
+</div>
+</div>
 
-    <div class="portal-actions">
-      <button id="btnCopyPortal" class="small-btn">Copier</button>
-      <button id="btnPortal" class="small-btn">Ouvrir</button>
-      <span id="portalCopied" class="copied hidden">Copié</span>
-    </div>
-  </div>
+<button id="btnTest">Tester SSO (UUID)</button>
 
-  <div class="actions">
-    <button id="btnTest">Tester SSO (UUID)</button>
-    <button id="btnSwagger">Ouvrir Swagger</button>
-    <button id="btnCurl">Copier CURL</button>
-    <span id="curlCopied" class="copied hidden">Copié</span>
-  </div>
+<h3>Résultat</h3>
+<div id="resultTitle"></div>
+<div id="autoIndicator" class="auto-badge hidden">⚡ Auto test déclenché</div>
 
-  <h3>Résultat</h3>
-  <div id="resultTitle"></div>
-  <div id="autoIndicator" class="auto-badge hidden">⚡ Auto test déclenché</div>
+<div id="resultFormatted" class="hidden">
+<div class="result-grid">
+<div class="card">
+<h4>Identité</h4>
+<table class="table" id="tblIdentite"></table>
+</div>
+<div class="card">
+<h4>Variables de session</h4>
+<table class="table" id="tblVariables"></table>
+</div>
+</div>
 
-  <!-- Résultat formaté -->
-  <div id="resultFormatted" class="hidden">
-    <div class="result-grid">
-      <div class="card">
-        <h4>Identité</h4>
-        <table class="table" id="tblIdentite"></table>
-      </div>
-      <div class="card">
-        <h4>Variables de session</h4>
-        <table class="table" id="tblVariables"></table>
-      </div>
-    </div>
+<div class="card">
+<h4>Options Web</h4>
+<div class="badges" id="badgesOptions"></div>
+</div>
+</div>
 
-    <div class="card">
-      <h4>Options Web</h4>
-      <div class="badges" id="badgesOptions"></div>
-    </div>
-  </div>
-
-  <details>
-    <summary>Réponse brute</summary>
-    <pre id="result"></pre>
-  </details>
+<details>
+<summary>Réponse brute</summary>
+<pre id="result"></pre>
+</details>
 
 </div>
 
 <script>
 (function(){
 
-function showCopied(id){
-  var el = document.getElementById(id);
-  el.classList.remove("hidden");
-  setTimeout(function(){ el.classList.add("hidden"); }, 2000);
-}
+function normalize(u){ return (u||"").replace(/\/+$/,""); }
+function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
 
 function copyText(text,id){
-  if(!text) return;
-  var ta=document.createElement("textarea");
-  ta.value=text;
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand("copy");
-  document.body.removeChild(ta);
-  showCopied(id);
+if(!text) return;
+var ta=document.createElement("textarea");
+ta.value=text;
+document.body.appendChild(ta);
+ta.select();
+document.execCommand("copy");
+document.body.removeChild(ta);
+document.getElementById(id).classList.remove("hidden");
+setTimeout(()=>document.getElementById(id).classList.add("hidden"),2000);
 }
 
-function normalize(u){ return (u||"").replace(/\/+$/,""); }
+var referrer=document.referrer||"";
+var params=new URLSearchParams(window.location.search);
 
-function showAutoBadge(){
-  var b=document.getElementById("autoIndicator");
-  b.classList.remove("hidden");
-  b.offsetHeight;
-  b.classList.add("show");
+var cnx="", uuid="";
+params.forEach((v,k)=>{
+k=k.toLowerCase();
+if(k==="cnx") cnx=v;
+if(k==="uuid") uuid=v;
+});
+uuid=(uuid||"").replace(/\/$/,"");
+var uuidValid=/^[a-z0-9]+$/i.test(uuid);
+
+document.getElementById("referrer").textContent=referrer||"Aucun";
+document.getElementById("cnx").textContent=cnx||"Non présent";
+document.getElementById("uuid").textContent=uuid||"Non présent";
+document.getElementById("btnCopyUuid").disabled=!uuidValid;
+
+var apiUrl=null;
+if(referrer && cnx){
+try{
+var r=new URL(referrer);
+apiUrl=normalize(r.origin+"/"+cnx+"/api");
+}catch(e){}
 }
+document.getElementById("apiUrl").textContent=apiUrl||"Non disponible";
 
-function hideAutoBadge(){
-  var b=document.getElementById("autoIndicator");
-  b.classList.remove("show");
-  setTimeout(function(){ b.classList.add("hidden"); }, 250);
+var portalUrl=null;
+if(apiUrl && uuidValid){
+portalUrl=new URL(apiUrl).origin+"/"+cnx+"/isuiteexpert/?UUID="+encodeURIComponent(uuid);
 }
+document.getElementById("portalUrl").textContent=portalUrl||"Non disponible";
+document.getElementById("btnPortal").disabled=!portalUrl;
+document.getElementById("btnCopyPortal").disabled=!portalUrl;
 
-function escapeHtml(s){
-  return String(s==null?"":s).replace(/[&<>"']/g,function(c){
-    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
-  });
-}
-
-function renderSsoResult(data){
-  var formatted = document.getElementById("resultFormatted");
-  var tblId = document.getElementById("tblIdentite");
-  var badges = document.getElementById("badgesOptions");
-  var tblVars = document.getElementById("tblVariables");
-
-  tblId.innerHTML = "";
-  badges.innerHTML = "";
-  tblVars.innerHTML = "";
-  formatted.classList.add("hidden");
-
-  if(!data || typeof data !== "object") return;
-
-  var identObj = (data.Identite && typeof data.Identite === "object") ? data.Identite : null;
-  var typeVal   = identObj ? identObj.Type   : data.Type;
-  var codeVal   = identObj ? identObj.Code   : data.Code;
-  var emailVal  = identObj ? identObj.Email  : data.Email;
-  var prenomVal = identObj ? identObj.Prenom : data.Prenom;
-  var nomVal    = identObj ? identObj.Nom    : data.Nom;
-
-  var rowsId = "";
-  [
-    ["Type", typeVal],
-    ["Code", codeVal],
-    ["Email", emailVal],
-    ["Prenom", prenomVal],
-    ["Nom", nomVal]
-  ].forEach(function(pair){
-    var key = pair[0];
-    var val = pair[1];
-    if(val === undefined || val === null || val === "") return;
-
-    var valHtml = escapeHtml(val);
-    if(key === "Type" || key === "Code"){
-      valHtml = "<strong>" + valHtml + "</strong>";
-    }
-    rowsId += "<tr><th>"+escapeHtml(key)+"</th><td>"+valHtml+"</td></tr>";
-  });
-  tblId.innerHTML = rowsId || "<tr><td>Aucune donnée</td></tr>";
-
-  var vars = data.VariablesSession;
-  if(vars && typeof vars === "object"){
-    var rowsV = "";
-    Object.keys(vars).forEach(function(k){
-      rowsV += "<tr><th>"+escapeHtml(k)+"</th><td>"+escapeHtml(vars[k])+"</td></tr>";
-    });
-    tblVars.innerHTML = rowsV || "<tr><td>Aucune variable</td></tr>";
-  } else {
-    tblVars.innerHTML = "<tr><td>Aucune variable</td></tr>";
-  }
-
-  if(Array.isArray(data.OptionsWeb) && data.OptionsWeb.length){
-    data.OptionsWeb.forEach(function(o){
-      var lib = (o && (o.Libelle ?? o.libelle)) ?? "";
-      var val = (o && (o.Valeur ?? o.valeur)) ?? "";
-      var off = (val === false || val === "false" || val === 0 || val === "0");
-      var cls = off ? "badge off" : "badge";
-      var label = String(lib || "Option").trim();
-      badges.insertAdjacentHTML("beforeend",
-        "<span class='"+cls+"' title='Valeur: "+escapeHtml(val)+"'>"+escapeHtml(label)+"</span>"
-      );
-    });
-  } else {
-    badges.insertAdjacentHTML("beforeend","<span class='hint'>Aucune option</span>");
-  }
-
-  formatted.classList.remove("hidden");
-}
-
-/* ---- Contexte ---- */
-var referrer = document.referrer || "";
-var params = new URLSearchParams(window.location.search);
-
-// ✅ CNX/UUID insensible à la casse
-var cnx = "";
-var uuid = "";
-params.forEach(function(value,key){
-  var k = (key || "").toLowerCase();
-  if(k === "cnx") cnx = value;
-  if(k === "uuid") uuid = value;
+fetch("https://api.ipify.org?format=json")
+.then(r=>r.json())
+.then(d=>{
+document.getElementById("browserIp").textContent=d.ip+" (ipify)";
+document.getElementById("xClientIp").value=d.ip;
 });
 
-uuid = (uuid || "").replace(/\/$/,"");
-var uuidValid = /^[a-z0-9]+$/i.test(uuid);
+function renderSsoResult(data){
+var tblId=document.getElementById("tblIdentite");
+var tblVars=document.getElementById("tblVariables");
+var badges=document.getElementById("badgesOptions");
+tblId.innerHTML=""; tblVars.innerHTML=""; badges.innerHTML="";
+document.getElementById("resultFormatted").classList.remove("hidden");
 
-document.getElementById("referrer").textContent = referrer || "Aucun";
-document.getElementById("cnx").textContent = cnx || "Non présent";
-document.getElementById("uuid").textContent = uuid || "Non présent";
-document.getElementById("btnCopyUuid").disabled = !uuidValid;
-
-// URL API : ?api=... override sinon referrer
-var apiOverride = params.get("api");
-var apiUrl = null;
-
-if(apiOverride){
-  apiUrl = normalize(apiOverride);
-} else if(referrer && cnx){
-  try{
-    var r = new URL(referrer);
-    apiUrl = normalize(r.origin + "/" + cnx + "/api");
-  }catch(e){}
+if(data.Identite){
+["Type","Code","Email","Prenom","Nom"].forEach(k=>{
+if(data.Identite[k])
+tblId.innerHTML+=`<tr><th>${k}</th><td>${escapeHtml(data.Identite[k])}</td></tr>`;
+});
 }
 
-document.getElementById("apiUrl").textContent = apiUrl || "Non disponible";
-
-var portalUrl = null;
-if(apiUrl && uuidValid){
-  var origin = new URL(apiUrl).origin;
-  portalUrl = origin + "/" + cnx + "/isuiteexpert/?UUID=" + encodeURIComponent(uuid);
-}
-document.getElementById("portalUrl").textContent = portalUrl || "Non disponible";
-document.getElementById("btnPortal").disabled = !portalUrl;
-document.getElementById("btnCopyPortal").disabled = !portalUrl;
-
-function getContext(){
-  return {
-    apiUrl: apiUrl,
-    uuid: uuidValid ? uuid : null,
-    xClientIp: document.getElementById("xClientIp").value.trim(),
-    sendXClientIp: document.getElementById("useXClientIp").checked
-  };
+if(data.VariablesSession){
+Object.keys(data.VariablesSession).forEach(k=>{
+tblVars.innerHTML+=`<tr><th>${k}</th><td>${escapeHtml(data.VariablesSession[k])}</td></tr>`;
+});
 }
 
-var autoTriggered = false;
-var autoTestDone = false;
+const CMD_MAP={
+"i-Admin":"IADMIN",
+"i-Ged":"IGED",
+"i-Dépôt":"IDEPOT",
+"i-Comptes":"ICOMPTES",
+"i-Banque":"IBANQUE",
+"i-Comptabilité":"comptaentreprise",
+"i-Facture":"IFACTURE",
+"i-Dossier":"IDOSSIER",
+"i-Stats":"ISTATS"
+};
 
-function maybeAutoTest(){
-  if(autoTestDone) return;
-  if(referrer && cnx && uuidValid){
-    autoTestDone = true;
-    autoTriggered = true;
-    showAutoBadge();
-    testSSO();
-  }
+if(Array.isArray(data.OptionsWeb)){
+data.OptionsWeb.forEach(o=>{
+let lib=o.Libelle||"";
+let cmd=null;
+Object.keys(CMD_MAP).forEach(k=>{
+if(lib.toLowerCase().startsWith(k.toLowerCase())) cmd=CMD_MAP[k];
+});
+if(cmd && portalUrl){
+badges.innerHTML+=`<button class="badge-btn on" onclick="window.open('${portalUrl}&CMD=${cmd}','_blank')">${escapeHtml(lib)}</button>`;
+}else{
+badges.innerHTML+=`<button class="badge-btn off" disabled>${escapeHtml(lib)}</button>`;
+}
+});
+}
 }
 
 function testSSO(){
-  var ctx = getContext();
-  var title = document.getElementById("resultTitle");
-  var result = document.getElementById("result");
-
-  title.innerHTML = "";
-  result.textContent = "";
-  document.getElementById("resultFormatted").classList.add("hidden");
-
-  if(!ctx.apiUrl){
-    title.innerHTML = "<span class='err'>URL API non disponible</span>";
-    return;
-  }
-  if(!ctx.uuid){
-    title.innerHTML = "<span class='err'>UUID invalide</span>";
-    return;
-  }
-
-  var headers = {
-    "accept":"text/plain",
-    "Content-Type":"application/json-patch+json"
-  };
-
-  if(ctx.sendXClientIp && ctx.xClientIp){
-    headers["X-CLIENT-IP"] = ctx.xClientIp;
-  }
-
-  fetch(normalize(ctx.apiUrl) + "/v1/authentification/uuid",{
-    method:"POST",
-    headers: headers,
-    body: JSON.stringify({UUID: ctx.uuid})
-  })
-  .then(function(r){
-    return r.text().then(function(t){
-      return {ok:r.ok,status:r.status,text:t};
-    });
-  })
-  .then(function(res){
-    result.textContent = res.text;
-
-    if(!res.ok){
-      title.innerHTML = "<span class='err'>Erreur HTTP " + res.status + "</span>";
-      return;
-    }
-
-    title.innerHTML = "<span class='ok'>Connexion SSO valide</span>";
-
-    try{
-      var parsed = JSON.parse(res.text);
-      renderSsoResult(parsed);
-    }catch(e){
-      document.getElementById("resultFormatted").classList.add("hidden");
-    }
-
-    if(autoTriggered){
-      setTimeout(hideAutoBadge, 2000);
-    }
-  })
-  .catch(function(e){
-    title.innerHTML = "<span class='err'>Erreur réseau / CORS</span>";
-    result.textContent = e.message;
-  });
-}
-
-function openSwagger(){
-  if(!apiUrl) return;
-  window.open(normalize(apiUrl) + "/swagger/index.html", "_blank");
-}
-
-function copyCurl(){
-  var ctx = getContext();
-  if(!ctx.apiUrl || !ctx.uuid) return;
-
-  var curl = "curl -X 'POST' \\\n" +
-    "  '"+normalize(ctx.apiUrl)+"/v1/authentification/uuid' \\\n" +
-    "  -H 'accept: text/plain' \\\n";
-
-  if(ctx.sendXClientIp && ctx.xClientIp){
-    curl += "  -H 'X-CLIENT-IP: "+ctx.xClientIp+"' \\\n";
-  }
-
-  curl += "  -H 'Content-Type: application/json-patch+json' \\\n" +
-    "  -d '{\n  \"UUID\": \""+ctx.uuid+"\"\n}'";
-
-  copyText(curl, "curlCopied");
-}
-
-/* ---- Events ---- */
-document.getElementById("btnTest").addEventListener("click", testSSO);
-document.getElementById("btnSwagger").addEventListener("click", openSwagger);
-document.getElementById("btnCurl").addEventListener("click", copyCurl);
-
-document.getElementById("btnCopyUuid").addEventListener("click", function(){
-  if(uuidValid) copyText(uuid, "uuidCopied");
-});
-document.getElementById("btnCopyPortal").addEventListener("click", function(){
-  if(portalUrl) copyText(portalUrl, "portalCopied");
-});
-document.getElementById("btnPortal").addEventListener("click", function(){
-  if(portalUrl) window.open(portalUrl, "_blank");
-});
-
-/* ✅ IP navigateur (ipify) + auto-test après remplissage si possible */
-fetch("https://api.ipify.org?format=json")
-.then(function(r){ return r.json(); })
-.then(function(d){
-  document.getElementById("browserIp").textContent = d.ip + " (ipify)";
-  document.getElementById("xClientIp").value = d.ip;
-  maybeAutoTest();
+if(!apiUrl||!uuidValid) return;
+fetch(apiUrl+"/v1/authentification/uuid",{
+method:"POST",
+headers:{"Content-Type":"application/json-patch+json"},
+body:JSON.stringify({UUID:uuid})
 })
-.catch(function(){
-  document.getElementById("browserIp").textContent = "Non disponible";
-  // même si ipify échoue, on peut auto-tester
-  maybeAutoTest();
+.then(r=>r.text().then(t=>({ok:r.ok,text:t})))
+.then(res=>{
+document.getElementById("result").textContent=res.text;
+if(res.ok){
+document.getElementById("resultTitle").innerHTML="<span class='ok'>Connexion SSO valide</span>";
+renderSsoResult(JSON.parse(res.text));
+}else{
+document.getElementById("resultTitle").innerHTML="<span class='err'>Erreur</span>";
+}
 });
+}
+
+document.getElementById("btnTest").addEventListener("click",testSSO);
+document.getElementById("btnCopyUuid").addEventListener("click",()=>copyText(uuid,"uuidCopied"));
+document.getElementById("btnCopyPortal").addEventListener("click",()=>copyText(portalUrl,"portalCopied"));
+document.getElementById("btnPortal").addEventListener("click",()=>window.open(portalUrl,"_blank"));
 
 })();
 </script>
