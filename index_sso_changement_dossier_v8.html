@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Connexion SSO par UUID</title>
+
+<!-- Favicon inline -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
+%3Ctext y='0.9em' font-size='90'%3E🔑%3C/text%3E
+%3C/svg%3E">
+<link rel="icon" href="data:,">
+
+<meta name="referrer" content="strict-origin-when-cross-origin">
+
+<style>
+body { font-family: Arial; padding:40px; background:#f5f6f8; }
+.box { background:#fff; padding:20px; border-radius:8px; max-width:1100px; border:1px solid #ddd; }
+.row { margin-bottom:12px; }
+.label { font-weight:bold; width:170px; display:inline-block; }
+.value { color:#003366; word-break:break-all; }
+
+input[type="text"] { padding:6px 8px; border:1px solid #ccc; border-radius:6px; min-width:280px; }
+
+button { background:#003366; color:white; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; }
+button:disabled { opacity:0.5; cursor:not-allowed; }
+
+.actions { margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+.ok { color:#0b6b2e; font-weight:bold; }
+.err { color:#b00020; font-weight:bold; }
+
+.small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
+.copied { color:#0b6b2e; font-weight:bold; margin-left:10px; font-size:12px; }
+.hidden { display:none; }
+.hint { font-size:12px; color:#666; margin-top:4px; }
+
+/* Alignement URL portail */
+.row-portal{ display:flex; align-items:center; gap:10px; }
+.row-portal .value{ flex:1; }
+.portal-actions{ display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+
+/* Badge auto test */
+.auto-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#e6f4ea;
+  color:#0b6b2e;
+  border:1px solid #0b6b2e;
+  padding:4px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+  margin-top:10px;
+  opacity:0;
+  transform:translateY(-4px);
+  transition:opacity .25s ease, transform .25s ease;
+}
+.auto-badge.show{ opacity:1; transform:translateY(0); }
+
+/* --- Résultat formaté --- */
+.result-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin:10px 0 12px; }
+.card{ background:#f7f8fb; border:1px solid #e2e6ef; border-radius:8px; padding:12px; }
+.card h4{ margin:0 0 10px; font-size:14px; color:#003366; }
+.table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+.table th,.table td{ border:1px solid #e2e6ef; padding:6px 8px; text-align:left; vertical-align:top; }
+.table th{ background:#eef2fa; color:#1f2a44; width:220px; }
+#tblComptaDossier th{ width:auto; white-space:nowrap; }
+#tblComptaDossier td{ white-space:nowrap; }
+
+.badges{ display:flex; flex-wrap:wrap; gap:6px; }
+
+.card-title-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.card-title-row h4{ margin:0; }
+
+.inline-form{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.inline-form input[type="text"]{ min-width:180px; }
+.form-status{ font-size:12px; font-weight:bold; }
+
+/* ✅ Bulles cliquables OptionsWeb */
+.badge-btn{
+  border:0;
+  cursor:pointer;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:12px;
+  color:#fff;
+}
+.badge-btn.on{ background:#0b6b2e; }
+.badge-btn.off{ background:#6b7280; cursor:default; opacity:.85; }
+
+.status-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:12px;
+  font-weight:bold;
+  border:1px solid transparent;
+  white-space:nowrap;
+}
+.status-badge.true{ background:#2e7d32; color:#fff; border-color:#2e7d32; }
+.status-badge.false{ background:#c62828; color:#fff; border-color:#c62828; }
+.status-badge.neutral{ background:#eef2fa; color:#003366; border-color:#c9d5ea; }
+.status-badge.highlight{ padding:6px 14px; font-size:13px; box-shadow:0 0 0 2px rgba(11,107,46,.08); }
+.sub-analytic-row th{ padding-left:28px; color:#444; font-weight:normal; }
+
+.stats-table th,.stats-table td{ width:auto; white-space:nowrap; }
+.stats-table .count-cell{ font-weight:bold; color:#003366; }
+.viewer-title{ margin:0 0 10px; font-size:13px; color:#003366; }
+.viewer-meta{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+.viewer-meta .hint{ margin-top:0; }
+.table-scroll{ overflow:auto; max-height:360px; border:1px solid #e2e6ef; border-radius:6px; }
+
+details{ margin-top:10px; }
+summary{ cursor:pointer; color:#003366; font-weight:bold; }
+
+/* ✅ Réponse brute : anti-débordement + scroll vertical */
+pre{
+  background:#f4f6fa;
+  padding:12px;
+  border-radius:6px;
+  font-size:12px;
+
+  white-space:pre-wrap;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+
+  max-height:350px;
+  overflow-y:auto;
+  overflow-x:hidden;
+
+  box-sizing:border-box;
+}
+
+/* ✅ Colorisation JSON */
+.json-key{ color:#0b3d91; font-weight:bold; }
+.json-string{ color:#0b6b2e; }
+.json-number{ color:#8a2be2; }
+.json-boolean{ color:#b45309; font-weight:bold; }
+.json-null{ color:#6b7280; font-weight:bold; }
+.json-error{ color:#b00020; font-weight:bold; }
+
+.manual-box{ margin:12px 0; padding:12px; background:#fff7e6; border:1px solid #f0c36d; border-radius:8px; }
+.manual-box h4{ margin:0 0 10px; color:#7a4b00; font-size:14px; }
+.manual-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px 16px; }
+.manual-grid label{ display:block; font-weight:bold; margin-bottom:4px; }
+.manual-grid input{ width:100%; box-sizing:border-box; }
+
+.mini-note{margin-top:4px;font-size:11px;color:#666;}
+.inline-info{font-size:12px;color:#666;vertical-align:middle;}
+</style>
+</head>
+
+<body>
+<h2>Connexion SSO depuis portail i-suite</h2>
+
+<div class="box">
+
+  <div class="row">
+    <span class="label">Referrer :</span>
+    <span id="referrer" class="value"></span>
+  </div>
+
+  <div class="row">
+    <span class="label">cnx :</span>
+    <span id="cnx" class="value"></span>
+  </div>
+
+  <div class="row">
+    <span class="label">uuid :</span>
+    <span id="uuid"></span>
+    <button id="btnCopyUuid" class="small-btn">Copier UUID</button>
+    <span id="uuidCopied" class="copied hidden">Copié</span>
+  </div>
+
+  <div id="manualContextBox" class="manual-box hidden">
+    <h4>Saisie manuelle des paramètres SSO</h4>
+    <div class="manual-grid">
+      <div>
+        <label for="manualReferrer">Referrer</label>
+        <input type="text" id="manualReferrer" placeholder="https://portail.exemple.fr/...">
+      </div>
+      <div>
+        <label for="manualCnx">cnx</label>
+        <input type="text" id="manualCnx" maxlength="50" placeholder="cnx">
+      </div>
+      <div>
+        <label for="manualUuid">UUID</label>
+        <input type="text" id="manualUuid" maxlength="80" placeholder="UUID">
+      </div>
+    </div>
+    <div class="hint">La saisie manuelle est disponible si Referrer = Aucun, cnx = Non présent ou uuid = Non présent.</div>
+  </div>
+
+  <hr>
+
+  <div class="row">
+    <span class="label">IP Navigateur :</span>
+    <span id="browserIp" class="value"></span>
+  </div>
+
+  <div class="row">
+    <span class="label">X-CLIENT-IP :</span>
+    <input type="text" id="xClientIp">
+  </div>
+
+  <div class="row">
+    <label>
+      <input type="checkbox" id="useXClientIp">
+      Envoyer le header X-CLIENT-IP
+    </label>
+  </div>
+
+  <hr>
+
+  <div class="row">
+    <span class="label">URL API :</span>
+    <span id="apiUrl" class="value"></span>
+  </div>
+
+  <div class="row row-portal">
+    <span class="label">URL Portail :</span>
+    <span id="portalUrl" class="value"></span>
+
+    <div class="portal-actions">
+      <button id="btnCopyPortal" class="small-btn">Copier</button>
+      <button id="btnPortal" class="small-btn">Ouvrir</button>
+      <span id="portalCopied" class="copied hidden">Copié</span>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="btnTest">Tester SSO (UUID)</button>
+    <button id="btnSwagger">Ouvrir Swagger</button>
+    <button id="btnCurl">Copier CURL</button>
+    <span id="curlCopied" class="copied hidden">Copié</span>
+  </div>
+
+  <h3>Résultat</h3>
+  <div id="resultTitle"></div>
+  <div id="autoIndicator" class="auto-badge hidden">⚡ Auto test déclenché</div>
+
+  <!-- Résultat formaté -->
+  <div id="dossierSwitcher" class="card hidden" style="margin-top:12px;">
+    <h4>Changer de dossier</h4>
+    <div class="inline-form">
+      <label for="codeDossier"><strong>CodeDossier</strong></label>
+      <input type="text" id="codeDossier" maxlength="30" placeholder="Ex. BAS01">
+      <button id="btnChangeDossier" type="button">Changer de dossier</button>
+      <span id="dossierStatus" class="form-status"></span>
+    </div>
+    <div class="hint">Appel API : POST /v2/sessions/dossier avec le header UUID et le code dossier dans le body.</div>
+  </div>
+
+  <div id="resultFormatted" class="hidden">
+    <div class="result-grid">
+      <div class="card">
+        <h4>Identité</h4>
+        <table class="table" id="tblIdentite"></table>
+      </div>
+      <div class="card">
+        <h4>Variables de session</h4>
+        <table class="table" id="tblVariables"></table>
+      </div>
+    </div>
+
+    <div class="card hidden" id="cardComptaDossier">
+      <div class="card-title-row">
+        <h4>Paramétrage comptable du dossier</h4>
+        <div id="badgePublieISuite"></div>
+      </div>
+      <table class="table" id="tblComptaDossier"></table>
+    </div>
+
+    <div class="card hidden" id="cardComptaStats">
+      <h4>Données comptables publiées</h4>
+      <table class="table stats-table" id="tblComptaStats"></table>
+    </div>
+
+    <div class="card hidden" id="cardComptaViewer">
+      <div class="card-title-row">
+        <h4 id="comptaViewerTitle">Détail des données comptables</h4>
+        <div class="viewer-meta">
+          <span id="comptaViewerCount"></span>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="table" id="tblComptaViewer"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Accès i-suite ouvert sur le dossier</h4>
+      <div class="badges" id="badgesOptions"></div>
+    </div>
+  </div>
+
+  <details>
+    <summary>Réponse brute</summary>
+
+    <div style="margin:10px 0; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button id="btnCopyJson" class="small-btn">Copier JSON</button>
+      <span id="jsonCopied" class="copied hidden">Copié</span>
+    </div>
+
+    <pre id="result"></pre>
+  </details>
+
+</div>
+
+<script>
+(function(){
+
+/* ---------- Utils ---------- */
+function normalize(u){ return (u||"").replace(/\/+$/,""); }
+
+function escapeHtml(s){
+  return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+  });
+}
+
+function showCopied(id){
+  var el = document.getElementById(id);
+  el.classList.remove("hidden");
+  setTimeout(function(){ el.classList.add("hidden"); }, 2000);
+}
+
+function yesNoFromON(value){
+  if(value === "O") return "Oui";
+  if(value === "N") return "Non";
+  return value;
+}
+
+function boolBadge(value, highlight){
+  var v = (value === true || value === "true" || value === 1 || value === "1");
+  var label = v ? "Oui" : "Non";
+  var cls = "status-badge " + (v ? "true" : "false") + (highlight ? " highlight" : "");
+  return "<span class='"+cls+"'>"+label+"</span>";
+}
+
+function valueBadge(label, type, highlight){
+  var cls = "status-badge " + (type || "neutral") + (highlight ? " highlight" : "");
+  return "<span class='"+cls+"'>"+escapeHtml(label)+"</span>";
+}
+
+function resetComptaViewer(){
+  document.getElementById("tblComptaViewer").innerHTML = "";
+  document.getElementById("comptaViewerTitle").textContent = "Détail des données comptables";
+  document.getElementById("comptaViewerCount").innerHTML = "";
+  document.getElementById("cardComptaViewer").classList.add("hidden");
+}
+
+function resetComptaStats(){
+  document.getElementById("tblComptaStats").innerHTML = "";
+  document.getElementById("cardComptaStats").classList.add("hidden");
+  resetComptaViewer();
+}
+
+function resetComptaDossier(){
+  document.getElementById("tblComptaDossier").innerHTML = "";
+  document.getElementById("badgePublieISuite").innerHTML = "";
+  document.getElementById("cardComptaDossier").classList.add("hidden");
+  resetComptaStats();
+}
+
+function apiGetJson(path){
+  var ctx = getContext();
+  var currentUuid = lastValidUuid || ctx.uuid;
+  if(!ctx.apiUrl || !currentUuid){
+    return Promise.reject(new Error("Contexte API incomplet"));
+  }
+
+  var headers = {
+    "accept":"text/plain",
+    "UUID": currentUuid
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  return fetch(normalize(ctx.apiUrl) + path, {
+    method: "GET",
+    headers: headers
+  })
+  .then(function(r){
+    return r.text().then(function(t){
+      if(!r.ok){
+        throw new Error(t || ("HTTP " + r.status));
+      }
+      try{
+        return JSON.parse(t);
+      }catch(e){
+        throw new Error("Réponse JSON invalide");
+      }
+    });
+  });
+}
+
+var COMPTA_DATASETS = [
+  { key:"journaux", label:"Journaux", path:"/v1/compta/journal" },
+  { key:"generaux", label:"Comptes généraux", path:"/v1/compta/comptes/generaux" },
+  { key:"clients", label:"Comptes clients", path:"/v1/compta/comptes/clients" },
+  { key:"fournisseurs", label:"Comptes fournisseurs", path:"/v1/compta/comptes/fournisseurs" },
+  { key:"collectifs", label:"Comptes collectifs", path:"/v1/compta/comptes/collectifs" },
+  { key:"exercices", label:"Exercices", path:"/v1/compta/exercices" }
+];
+
+var comptaDataCache = {};
+var currentOpenDatasetKey = "";
+
+function countItems(data){
+  if(Array.isArray(data)) return data.length;
+  if(data && typeof data === "object") return Object.keys(data).length;
+  return 0;
+}
+
+function formatDateFr(value){
+  if(!value) return "";
+  var str = String(value).trim();
+  var m = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m){
+    return m[3] + "/" + m[2] + "/" + m[1];
+  }
+  return str;
+}
+
+function findDefaultExercice(data){
+  if(!Array.isArray(data)) return null;
+
+  var defaultExercise = data.find(function(item){
+    return item && (
+      item.Defaut === true ||
+      item.ParDefaut === true ||
+      item.ExerciceParDefaut === true ||
+      item.EstDefaut === true ||
+      item.Courant === true ||
+      item.Actif === true
+    );
+  });
+
+  return defaultExercise || data[0] || null;
+}
+
+function getDefaultExerciceInfo(data){
+  var ex = findDefaultExercice(data);
+  if(!ex || typeof ex !== "object") return "";
+
+  var start = ex.DateDebut || ex.Debut || ex.DateOuverture || ex.StartDate || "";
+  var end = ex.DateFin || ex.Fin || ex.DateCloture || ex.EndDate || "";
+
+  if(!start && !end) return "";
+  return "Défaut : " + [formatDateFr(start), formatDateFr(end)].filter(Boolean).join(" → ");
+}
+
+function renderComptaStats(){
+  var tbl = document.getElementById("tblComptaStats");
+  var card = document.getElementById("cardComptaStats");
+  var rows = "";
+
+  COMPTA_DATASETS.forEach(function(ds){
+    var entry = comptaDataCache[ds.key];
+    if(!entry){
+      rows += "<tr><th>" + escapeHtml(ds.label) + "</th><td class='count-cell'>…</td><td><button type='button' class='small-btn' disabled>Voir</button></td></tr>";
+      return;
+    }
+
+    if(entry.error){
+      rows += "<tr><th>" + escapeHtml(ds.label) + "</th><td class='count-cell'><span class='err'>Erreur</span></td><td><button type='button' class='small-btn' disabled>Voir</button></td></tr>";
+      return;
+    }
+
+    var countHtml = escapeHtml(String(entry.count));
+    var extraInfo = ds.key === "exercices" ? getDefaultExerciceInfo(entry.data) : "";
+    var btnLabel = currentOpenDatasetKey === ds.key ? "Replier" : "Voir";
+
+    rows += "<tr>" +
+      "<th>" + escapeHtml(ds.label) + "</th>" +
+      "<td class='count-cell'>" + countHtml + (extraInfo ? "<div class='mini-note'>" + escapeHtml(extraInfo) + "</div>" : "") + "</td>" +
+      "<td><button type='button' class='small-btn' data-dataset='" + escapeHtml(ds.key) + "'>" + btnLabel + "</button></td>" +
+    "</tr>";
+  });
+
+  tbl.innerHTML = rows || "<tr><td>Aucune donnée</td></tr>";
+  tbl.onclick = function(ev){
+    var btn = ev.target && ev.target.closest ? ev.target.closest("button[data-dataset]") : null;
+    if(!btn) return;
+    showComptaDataset(btn.getAttribute("data-dataset"));
+  };
+  card.classList.remove("hidden");
+}
+
+function datasetToRows(data){
+  if(Array.isArray(data)) return data;
+  if(data && typeof data === "object") return [data];
+  return [];
+}
+
+function showComptaDataset(datasetKey){
+  var ds = COMPTA_DATASETS.find(function(x){ return x.key === datasetKey; });
+  var entry = comptaDataCache[datasetKey];
+  var card = document.getElementById("cardComptaViewer");
+  var title = document.getElementById("comptaViewerTitle");
+  var count = document.getElementById("comptaViewerCount");
+  var tbl = document.getElementById("tblComptaViewer");
+
+  if(currentOpenDatasetKey === datasetKey){
+    currentOpenDatasetKey = "";
+    resetComptaViewer();
+    renderComptaStats();
+    return;
+  }
+
+  if(!ds || !entry || entry.error){
+    currentOpenDatasetKey = "";
+    resetComptaViewer();
+    renderComptaStats();
+    return;
+  }
+
+  currentOpenDatasetKey = datasetKey;
+  var rows = datasetToRows(entry.data);
+  title.textContent = ds.label;
+  var extraInfo = ds.key === "exercices" ? getDefaultExerciceInfo(entry.data) : "";
+  count.innerHTML = valueBadge(String(entry.count) + " élément" + (entry.count > 1 ? "s" : ""), "neutral", false) +
+    (extraInfo ? " <span class='inline-info'>" + escapeHtml(extraInfo) + "</span>" : "");
+
+  if(!rows.length){
+    tbl.innerHTML = "<tr><td>Aucune donnée</td></tr>";
+    card.classList.remove("hidden");
+    renderComptaStats();
+    return;
+  }
+
+  var headersMap = {};
+  rows.forEach(function(row){
+    if(row && typeof row === "object"){
+      Object.keys(row).forEach(function(k){ headersMap[k] = true; });
+    }
+  });
+  var headers = Object.keys(headersMap);
+
+  var html = "<tr>" + headers.map(function(h){ return "<th>" + escapeHtml(h) + "</th>"; }).join("") + "</tr>";
+  rows.forEach(function(row){
+    html += "<tr>" + headers.map(function(h){
+      var val = row && typeof row === "object" ? row[h] : "";
+      if(val === null || val === undefined) val = "";
+      if(typeof val === "object") val = JSON.stringify(val);
+      return "<td>" + escapeHtml(String(val)) + "</td>";
+    }).join("") + "</tr>";
+  });
+
+  tbl.innerHTML = html;
+  card.classList.remove("hidden");
+  renderComptaStats();
+}
+
+function fetchPublishedComptaData(){
+  comptaDataCache = {};
+  currentOpenDatasetKey = "";
+  renderComptaStats();
+
+  return Promise.all(COMPTA_DATASETS.map(function(ds){
+    return apiGetJson(ds.path)
+      .then(function(data){
+        comptaDataCache[ds.key] = { data:data, count:countItems(data) };
+      })
+      .catch(function(error){
+        comptaDataCache[ds.key] = { error:error && error.message ? error.message : "Erreur" };
+      })
+      .then(function(){
+        renderComptaStats();
+      });
+  }));
+}
+
+function renderComptaDossier(data){
+  var card = document.getElementById("cardComptaDossier");
+  var tbl = document.getElementById("tblComptaDossier");
+  var badge = document.getElementById("badgePublieISuite");
+
+  if(!data || typeof data !== "object"){
+    resetComptaDossier();
+    return;
+  }
+
+  badge.innerHTML = data.PublieSurISuite
+    ? valueBadge("Publié sur i-Suite : Oui", "true", true)
+    : valueBadge("Publié sur i-Suite : Non", "false", true);
+
+  var analytique = data.Analytique || {};
+  var param = analytique.Parametrage || {};
+  var analytiqueActive = !!analytique.Active;
+  var hierarchise = (param.NonHierarchise === undefined || param.NonHierarchise === null) ? "" : (!param.NonHierarchise);
+
+  var rows = "";
+  rows += "<tr>" +
+    "<th>Publié sur i-Suite</th><td>" + boolBadge(!!data.PublieSurISuite, true) + "</td>" +
+    "<th>Longueur comptes</th><td>" + escapeHtml(data.LongueurComptes ?? "") + "</td>" +
+    "<th>Gestion numéro facture</th><td>" + escapeHtml(yesNoFromON(data.GestionNumeroFacture) ?? "") + "</td>" +
+    "<th>Gestion quantités</th><td>" + boolBadge(!!data.GestionQuantites) + "</td>" +
+    "<th>Gestion échéancier</th><td>" + escapeHtml(yesNoFromON(data.GestionEcheancier) ?? "") + "</td>" +
+  "</tr>";
+
+  rows += "<tr><th>Analytique active</th><td colspan='9'>" + boolBadge(analytiqueActive) + "</td></tr>";
+
+  if(analytiqueActive){
+    [
+      ["Analytique hiérarchisée", hierarchise === "" ? "" : boolBadge(!!hierarchise)],
+      ["Nombre de niveaux analytiques", escapeHtml(param.NombreNiveaux ?? "")],
+      ["Analytique sur comptes de charges", param.CompteCharges === undefined ? "" : boolBadge(!!param.CompteCharges)],
+      ["Analytique sur comptes de produits", param.CompteProduits === undefined ? "" : boolBadge(!!param.CompteProduits)],
+      ["Analytique sur comptes de bilan", param.CompteBilan === undefined ? "" : boolBadge(!!param.CompteBilan)]
+    ].forEach(function(pair){
+      if(pair[1] === "" || pair[1] === undefined || pair[1] === null) return;
+      rows += "<tr class='sub-analytic-row'><th>↳ "+escapeHtml(pair[0])+"</th><td>"+pair[1]+"</td></tr>";
+    });
+  }
+
+  tbl.innerHTML = rows || "<tr><td>Aucune donnée</td></tr>";
+  card.classList.remove("hidden");
+
+  if(data.PublieSurISuite){
+    fetchPublishedComptaData();
+  } else {
+    resetComptaStats();
+  }
+}
+
+function fetchComptaDossier(){
+  var ctx = getContext();
+  if(!ctx.apiUrl || !(lastValidUuid || ctx.uuid)){
+    resetComptaDossier();
+    return Promise.resolve();
+  }
+
+  var headers = {
+    "accept":"text/plain",
+    "UUID": lastValidUuid || ctx.uuid
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  return fetch(normalize(ctx.apiUrl) + "/v1/compta/dossier", {
+    method: "GET",
+    headers: headers
+  })
+  .then(function(r){
+    return r.text().then(function(t){
+      return {ok:r.ok,status:r.status,text:t};
+    });
+  })
+  .then(function(res){
+    if(!res.ok){
+      resetComptaDossier();
+      return;
+    }
+    try{
+      renderComptaDossier(JSON.parse(res.text));
+    }catch(e){
+      resetComptaDossier();
+    }
+  })
+  .catch(function(){
+    resetComptaDossier();
+  });
+}
+
+function copyText(text,id){
+  if(!text) return;
+  var ta=document.createElement("textarea");
+  ta.value=text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  showCopied(id);
+}
+
+function showAutoBadge(){
+  var b=document.getElementById("autoIndicator");
+  b.classList.remove("hidden");
+  b.offsetHeight;
+  b.classList.add("show");
+}
+
+function hideAutoBadge(){
+  var b=document.getElementById("autoIndicator");
+  b.classList.remove("show");
+  setTimeout(function(){ b.classList.add("hidden"); }, 250);
+}
+
+/* ---------- JSON pretty + highlight + copy ---------- */
+var lastPrettyJsonText = "";
+
+function prettyJsonOrText(rawText){
+  try{
+    var obj = JSON.parse(rawText);
+    return { isJson: true, prettyText: JSON.stringify(obj, null, 2) };
+  }catch(e){
+    return { isJson: false, prettyText: rawText };
+  }
+}
+
+function highlightJson(prettyText, isJson){
+  if(!isJson){
+    return "<span class='json-error'>Réponse non JSON</span>\n" + escapeHtml(prettyText);
+  }
+
+  var json = escapeHtml(prettyText);
+
+  // clés: "xxx":
+  json = json.replace(/(&quot;.*?&quot;)(\s*:\s*)/g, function(_, key, sep){
+    return "<span class='json-key'>" + key + "</span>" + sep;
+  });
+
+  // strings: "..."
+  json = json.replace(/(:\s*)(&quot;.*?&quot;)/g, function(_, sep, str){
+    return sep + "<span class='json-string'>" + str + "</span>";
+  });
+
+  // numbers
+  json = json.replace(/(:\s*)(-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g, function(_, sep, num){
+    return sep + "<span class='json-number'>" + num + "</span>";
+  });
+
+  // booleans
+  json = json.replace(/(:\s*)(true|false)\b/g, function(_, sep, b){
+    return sep + "<span class='json-boolean'>" + b + "</span>";
+  });
+
+  // null
+  json = json.replace(/(:\s*)(null)\b/g, function(_, sep, n){
+    return sep + "<span class='json-null'>" + n + "</span>";
+  });
+
+  return json;
+}
+
+function setRawResult(text){
+  var pre = document.getElementById("result");
+  var r = prettyJsonOrText(text);
+  lastPrettyJsonText = r.prettyText;
+  pre.innerHTML = highlightJson(r.prettyText, r.isJson);
+  document.getElementById("btnCopyJson").disabled = !lastPrettyJsonText;
+}
+
+/* ---------- Read context (case-insensitive CNX/UUID) ---------- */
+var detectedReferrer = document.referrer || "";
+var params = new URLSearchParams(window.location.search);
+var apiOverride = params.get("api");
+
+var detectedCnx = "";
+var detectedUuid = "";
+params.forEach(function(value,key){
+  var k = (key || "").toLowerCase();
+  if(k === "cnx") detectedCnx = value;
+  if(k === "uuid") detectedUuid = value;
+});
+
+detectedUuid = (detectedUuid || "").replace(/\/$/,"");
+
+function isUuidValid(v){
+  return /^[a-z0-9]+$/i.test((v || "").trim());
+}
+
+function computeApiUrl(referrerValue, cnxValue){
+  if(apiOverride) return normalize(apiOverride);
+  if(referrerValue && cnxValue){
+    try{
+      var r = new URL(referrerValue);
+      return normalize(r.origin + "/" + cnxValue + "/api");
+    }catch(e){}
+  }
+  return null;
+}
+
+function computePortalUrl(apiUrlValue, cnxValue, uuidValue){
+  if(apiUrlValue && isUuidValid(uuidValue) && cnxValue){
+    try{
+      var origin = new URL(apiUrlValue).origin;
+      return origin + "/" + cnxValue + "/isuiteexpert/?UUID=" + encodeURIComponent(uuidValue);
+    }catch(e){}
+  }
+  return null;
+}
+
+var missingAny = (!detectedReferrer || !detectedCnx || !detectedUuid);
+var manualBox = document.getElementById("manualContextBox");
+var manualReferrerInput = document.getElementById("manualReferrer");
+var manualCnxInput = document.getElementById("manualCnx");
+var manualUuidInput = document.getElementById("manualUuid");
+
+if(missingAny){
+  manualBox.classList.remove("hidden");
+}
+
+manualReferrerInput.value = detectedReferrer || "";
+manualCnxInput.value = detectedCnx || "";
+manualUuidInput.value = detectedUuid || "";
+
+var referrer = detectedReferrer;
+var cnx = detectedCnx;
+var uuid = detectedUuid;
+var uuidValid = isUuidValid(uuid);
+var apiUrl = null;
+var portalUrl = null;
+
+function refreshContextDisplay(){
+  referrer = (manualBox.classList.contains("hidden") ? detectedReferrer : (manualReferrerInput.value || "").trim()) || "";
+  cnx = (manualBox.classList.contains("hidden") ? detectedCnx : (manualCnxInput.value || "").trim()) || "";
+  uuid = ((manualBox.classList.contains("hidden") ? detectedUuid : (manualUuidInput.value || "").trim()) || "").replace(/\/$/,"");
+  uuidValid = isUuidValid(uuid);
+  apiUrl = computeApiUrl(referrer, cnx);
+  portalUrl = computePortalUrl(apiUrl, cnx, uuid);
+
+  document.getElementById("referrer").textContent = referrer || "Aucun";
+  document.getElementById("cnx").textContent = cnx || "Non présent";
+  document.getElementById("uuid").textContent = uuid || "Non présent";
+  document.getElementById("apiUrl").textContent = apiUrl || "Non disponible";
+  document.getElementById("portalUrl").textContent = portalUrl || "Non disponible";
+  document.getElementById("btnCopyUuid").disabled = !uuidValid;
+  document.getElementById("btnPortal").disabled = !portalUrl;
+  document.getElementById("btnCopyPortal").disabled = !portalUrl;
+}
+
+refreshContextDisplay();
+
+/* ---------- Render formatted result ---------- */
+function renderSsoResult(data){
+  var formatted = document.getElementById("resultFormatted");
+  var tblId = document.getElementById("tblIdentite");
+  var badges = document.getElementById("badgesOptions");
+  var tblVars = document.getElementById("tblVariables");
+  var dossierSwitcher = document.getElementById("dossierSwitcher");
+
+  tblId.innerHTML = "";
+  badges.innerHTML = "";
+  tblVars.innerHTML = "";
+  formatted.classList.add("hidden");
+  dossierSwitcher.classList.add("hidden");
+  resetComptaDossier();
+
+  if(!data || typeof data !== "object") return;
+
+  // Identité (nested) + fallback flat
+  var identObj = (data.Identite && typeof data.Identite === "object") ? data.Identite : null;
+  var typeVal   = identObj ? identObj.Type   : data.Type;
+  var codeVal   = identObj ? identObj.Code   : data.Code;
+  var emailVal  = identObj ? identObj.Email  : data.Email;
+  var prenomVal = identObj ? identObj.Prenom : data.Prenom;
+  var nomVal    = identObj ? identObj.Nom    : data.Nom;
+
+  var rowsId = "";
+  [
+    ["Type", typeVal],
+    ["Code", codeVal],
+    ["Email", emailVal],
+    ["Prenom", prenomVal],
+    ["Nom", nomVal]
+  ].forEach(function(pair){
+    var key = pair[0];
+    var val = pair[1];
+    if(val === undefined || val === null || val === "") return;
+
+    var valHtml = escapeHtml(val);
+    if(key === "Type" || key === "Code"){
+      valHtml = "<strong>" + valHtml + "</strong>";
+    }
+    rowsId += "<tr><th>"+escapeHtml(key)+"</th><td>"+valHtml+"</td></tr>";
+  });
+  tblId.innerHTML = rowsId || "<tr><td>Aucune donnée</td></tr>";
+
+  // VariablesSession
+  var vars = data.VariablesSession;
+  if(vars && typeof vars === "object"){
+    var rowsV = "";
+    Object.keys(vars).forEach(function(k){
+      rowsV += "<tr><th>"+escapeHtml(k)+"</th><td>"+escapeHtml(vars[k])+"</td></tr>";
+    });
+    tblVars.innerHTML = rowsV || "<tr><td>Aucune variable</td></tr>";
+  } else {
+    tblVars.innerHTML = "<tr><td>Aucune variable</td></tr>";
+  }
+
+  // OptionsWeb -> bulles vertes cliquables selon table
+  var CMD_MAP = [
+    { startsWith: "i-Admin",        cmd: "IADMIN" },
+    { startsWith: "i-Ged",          cmd: "IGED" },
+    { startsWith: "i-Dépôt",        cmd: "IDEPOT" },
+    { startsWith: "i-Comptes",      cmd: "ICOMPTES" },
+    { startsWith: "i-Banque",       cmd: "IBANQUE" },
+    { startsWith: "i-Comptabilité", cmd: "comptaentreprise" },
+    { startsWith: "i-Facture",      cmd: "IFACTURE" },
+    { startsWith: "i-Dossier",      cmd: "IDOSSIER" },
+    { startsWith: "i-Stats",        cmd: "ISTATS" }
+  ];
+
+  function resolveCmd(libelle){
+    var l = String(libelle || "").trim();
+    for(var i=0;i<CMD_MAP.length;i++){
+      if(l.toLowerCase().startsWith(CMD_MAP[i].startsWith.toLowerCase())){
+        return CMD_MAP[i].cmd;
+      }
+    }
+    return null;
+  }
+
+  function openCmd(cmd){
+    if(!portalUrl) return;
+    var url = portalUrl + "&CMD=" + encodeURIComponent(cmd);
+    window.open(url, "_blank");
+  }
+
+  if(Array.isArray(data.OptionsWeb) && data.OptionsWeb.length){
+    data.OptionsWeb.forEach(function(o){
+      var lib = (o && (o.Libelle ?? o.libelle)) ?? "";
+      var val = (o && (o.Valeur ?? o.valeur)) ?? "";
+
+      var isFalse = (val === false || val === "false" || val === 0 || val === "0");
+      var cmd = resolveCmd(lib);
+
+      if(cmd && !isFalse && portalUrl){
+        badges.insertAdjacentHTML(
+          "beforeend",
+          "<button type='button' class='badge-btn on' data-cmd='"+escapeHtml(cmd)+"' " +
+          "title='Ouvrir : "+escapeHtml(portalUrl)+"&CMD="+escapeHtml(cmd)+"'>" +
+          escapeHtml(String(lib).trim()) +
+          "</button>"
+        );
+      } else {
+        badges.insertAdjacentHTML(
+          "beforeend",
+          "<button type='button' class='badge-btn off' disabled " +
+          "title='Non disponible (non mappée, désactivée, ou URL Portail indisponible)'>" +
+          escapeHtml(String(lib || "Option").trim()) +
+          "</button>"
+        );
+      }
+    });
+
+    // délégation clic
+    badges.onclick = function(ev){
+      var btn = ev.target && ev.target.closest ? ev.target.closest("button[data-cmd]") : null;
+      if(!btn) return;
+      var cmd = btn.getAttribute("data-cmd");
+      if(cmd) openCmd(cmd);
+    };
+
+  } else {
+    badges.insertAdjacentHTML("beforeend","<span class='hint'>Aucune option</span>");
+  }
+
+  formatted.classList.remove("hidden");
+  dossierSwitcher.classList.remove("hidden");
+  fetchComptaDossier();
+}
+
+
+function resetDossierStatus(){
+  var el = document.getElementById("dossierStatus");
+  el.textContent = "";
+  el.className = "form-status";
+}
+
+function setDossierStatus(msg, ok){
+  var el = document.getElementById("dossierStatus");
+  el.textContent = msg || "";
+  el.className = "form-status " + (ok ? "ok" : "err");
+}
+
+function changeDossier(){
+  var ctx = getContext();
+  var codeDossier = (document.getElementById("codeDossier").value || "").trim();
+  var title = document.getElementById("resultTitle");
+
+  resetDossierStatus();
+
+  if(!ctx.apiUrl){
+    setDossierStatus("URL API non disponible", false);
+    return;
+  }
+  if(!(lastValidUuid || ctx.uuid)){
+    setDossierStatus("Connexion SSO non valide", false);
+    return;
+  }
+  if(!codeDossier){
+    setDossierStatus("Saisir un CodeDossier", false);
+    return;
+  }
+
+  var uuidHeader = lastValidUuid || ctx.uuid;
+  var headers = {
+    "accept":"text/plain",
+    "UUID": uuidHeader,
+    "Content-Type":"application/json-patch+json"
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  fetch(normalize(ctx.apiUrl) + "/v2/sessions/dossier",{
+    method:"POST",
+    headers: headers,
+    body: JSON.stringify(codeDossier)
+  })
+  .then(function(r){
+    return r.text().then(function(t){
+      return {ok:r.ok,status:r.status,text:t};
+    });
+  })
+  .then(function(res){
+    setRawResult(res.text);
+
+    if(!res.ok){
+      title.innerHTML = "<span class='err'>Erreur HTTP " + res.status + "</span>";
+      resetComptaDossier();
+      setDossierStatus("Changement de dossier refusé", false);
+      return;
+    }
+
+    title.innerHTML = "<span class='ok'>Connexion SSO valide - dossier courant mis à jour</span>";
+    setDossierStatus("Dossier courant changé : " + codeDossier, true);
+
+    try{
+      var parsed = JSON.parse(res.text);
+      lastSsoPayload = parsed;
+      if(parsed && parsed.UUID){
+        lastValidUuid = parsed.UUID;
+      }
+      renderSsoResult(parsed);
+    }catch(e){
+      document.getElementById("resultFormatted").classList.add("hidden");
+      resetComptaDossier();
+    }
+  })
+  .catch(function(e){
+    title.innerHTML = "<span class='err'>Erreur réseau / CORS</span>";
+    setRawResult(e.message);
+    setDossierStatus("Erreur réseau / CORS", false);
+    document.getElementById("resultFormatted").classList.add("hidden");
+  });
+}
+
+/* ---------- SSO call ---------- */
+function getContext(){
+  return {
+    apiUrl: apiUrl,
+    uuid: uuidValid ? uuid : null,
+    xClientIp: document.getElementById("xClientIp").value.trim(),
+    sendXClientIp: document.getElementById("useXClientIp").checked
+  };
+}
+
+var autoTriggered = false;
+var autoTestDone = false;
+var lastValidUuid = null;
+var lastSsoPayload = null;
+
+function maybeAutoTest(){
+  if(autoTestDone) return;
+  if(apiUrl && cnx && uuidValid){
+    autoTestDone = true;
+    autoTriggered = true;
+    showAutoBadge();
+    testSSO();
+  }
+}
+
+function testSSO(){
+  var ctx = getContext();
+  var title = document.getElementById("resultTitle");
+
+  title.innerHTML = "";
+  setRawResult("");
+  document.getElementById("resultFormatted").classList.add("hidden");
+  document.getElementById("dossierSwitcher").classList.add("hidden");
+  resetComptaDossier();
+  resetDossierStatus();
+
+  if(!ctx.apiUrl){
+    title.innerHTML = "<span class='err'>URL API non disponible</span>";
+    return;
+  }
+  if(!ctx.uuid){
+    title.innerHTML = "<span class='err'>UUID invalide</span>";
+    return;
+  }
+
+  var headers = {
+    "accept":"text/plain",
+    "Content-Type":"application/json-patch+json"
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  fetch(normalize(ctx.apiUrl) + "/v1/authentification/uuid",{
+    method:"POST",
+    headers: headers,
+    body: JSON.stringify({UUID: ctx.uuid})
+  })
+  .then(function(r){
+    return r.text().then(function(t){
+      return {ok:r.ok,status:r.status,text:t};
+    });
+  })
+  .then(function(res){
+    setRawResult(res.text);
+
+    if(!res.ok){
+      lastValidUuid = null;
+      lastSsoPayload = null;
+      title.innerHTML = "<span class='err'>Erreur HTTP " + res.status + "</span>";
+      resetComptaDossier();
+      return;
+    }
+
+    title.innerHTML = "<span class='ok'>Connexion SSO valide</span>";
+
+    try{
+      var parsed = JSON.parse(res.text);
+      lastSsoPayload = parsed;
+      lastValidUuid = (parsed && parsed.UUID) ? parsed.UUID : ctx.uuid;
+      renderSsoResult(parsed);
+    }catch(e){
+      document.getElementById("resultFormatted").classList.add("hidden");
+      resetComptaDossier();
+    }
+
+    if(autoTriggered){
+      setTimeout(hideAutoBadge, 2000);
+    }
+  })
+  .catch(function(e){
+    lastValidUuid = null;
+    lastSsoPayload = null;
+    title.innerHTML = "<span class='err'>Erreur réseau / CORS</span>";
+    setRawResult(e.message);
+    document.getElementById("resultFormatted").classList.add("hidden");
+    document.getElementById("dossierSwitcher").classList.add("hidden");
+  });
+}
+
+/* ---------- Swagger + Curl ---------- */
+function openSwagger(){
+  if(!apiUrl) return;
+  window.open(normalize(apiUrl) + "/swagger/index.html", "_blank");
+}
+
+function copyCurl(){
+  var ctx = getContext();
+  if(!ctx.apiUrl || !ctx.uuid) return;
+
+  var curl = "curl -X 'POST' \\\n" +
+    "  '"+normalize(ctx.apiUrl)+"/v1/authentification/uuid' \\\n" +
+    "  -H 'accept: text/plain' \\\n";
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    curl += "  -H 'X-CLIENT-IP: "+ctx.xClientIp+"' \\\n";
+  }
+
+  curl += "  -H 'Content-Type: application/json-patch+json' \\\n" +
+    "  -d '{\n  \"UUID\": \""+ctx.uuid+"\"\n}'";
+
+  copyText(curl, "curlCopied");
+}
+
+/* ---------- Events ---------- */
+document.getElementById("btnTest").addEventListener("click", testSSO);
+document.getElementById("btnSwagger").addEventListener("click", openSwagger);
+document.getElementById("btnCurl").addEventListener("click", copyCurl);
+
+document.getElementById("btnCopyUuid").addEventListener("click", function(){
+  if(uuidValid) copyText(uuid, "uuidCopied");
+});
+
+document.getElementById("btnCopyPortal").addEventListener("click", function(){
+  if(portalUrl) copyText(portalUrl, "portalCopied");
+});
+
+document.getElementById("btnPortal").addEventListener("click", function(){
+  if(portalUrl) window.open(portalUrl, "_blank");
+});
+
+document.getElementById("btnCopyJson").addEventListener("click", function(){
+  if(!lastPrettyJsonText) return;
+  copyText(lastPrettyJsonText, "jsonCopied");
+});
+
+document.getElementById("btnChangeDossier").addEventListener("click", changeDossier);
+document.getElementById("codeDossier").addEventListener("keydown", function(e){
+  if(e.key === "Enter"){
+    e.preventDefault();
+    changeDossier();
+  }
+});
+
+[manualReferrerInput, manualCnxInput, manualUuidInput].forEach(function(input){
+  input.addEventListener("input", function(){
+    refreshContextDisplay();
+  });
+});
+
+/* ---------- IP (ipify) then auto-test ---------- */
+document.getElementById("browserIp").textContent = "Chargement...";
+fetch("https://api.ipify.org?format=json")
+.then(function(r){ return r.json(); })
+.then(function(d){
+  document.getElementById("browserIp").textContent = d.ip + " (ipify)";
+  document.getElementById("xClientIp").value = d.ip;
+  maybeAutoTest();
+})
+.catch(function(){
+  document.getElementById("browserIp").textContent = "Non disponible";
+  maybeAutoTest();
+});
+
+})();
+</script>
+
+</body>
+</html>
