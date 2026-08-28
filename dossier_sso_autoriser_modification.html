@@ -1,0 +1,2493 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Dossier ACD — Connexion SSO</title>
+
+<!-- Favicon inline -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
+%3Ctext y='0.9em' font-size='90'%3E🔑%3C/text%3E
+%3C/svg%3E">
+<link rel="icon" href="data:,">
+
+<meta name="referrer" content="strict-origin-when-cross-origin">
+
+<style>
+body { font-family: Arial; padding:40px; background:#f5f6f8; }
+.box { background:#fff; padding:20px; border-radius:8px; max-width:1100px; border:1px solid #ddd; }
+.row { margin-bottom:12px; }
+.label { font-weight:bold; width:170px; display:inline-block; }
+.value { color:#003366; word-break:break-all; }
+
+input[type="text"] { padding:6px 8px; border:1px solid #ccc; border-radius:6px; min-width:280px; }
+.param-select { padding:6px 8px; border:1px solid #ccc; border-radius:6px; min-width:120px; background:#fff; }
+
+button { background:#003366; color:white; border:0; padding:8px 12px; border-radius:6px; cursor:pointer; }
+button:disabled { opacity:0.5; cursor:not-allowed; }
+
+.actions { margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+.ok { color:#0b6b2e; font-weight:bold; }
+.err { color:#b00020; font-weight:bold; }
+
+.small-btn { padding:4px 8px; font-size:12px; margin-left:10px; }
+.copied { color:#0b6b2e; font-weight:bold; margin-left:10px; font-size:12px; }
+.hidden { display:none; }
+.hint { font-size:12px; color:#666; margin-top:4px; }
+
+/* Alignement URL portail */
+.row-portal{ display:flex; align-items:center; gap:10px; }
+.row-portal .value{ flex:1; }
+.portal-actions{ display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+
+/* Badge auto test */
+.auto-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#e6f4ea;
+  color:#0b6b2e;
+  border:1px solid #0b6b2e;
+  padding:4px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+  margin-top:10px;
+  opacity:0;
+  transform:translateY(-4px);
+  transition:opacity .25s ease, transform .25s ease;
+}
+.auto-badge.show{ opacity:1; transform:translateY(0); }
+
+/* --- Résultat formaté --- */
+.result-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin:10px 0 12px; }
+.card{ background:#f7f8fb; border:1px solid #e2e6ef; border-radius:8px; padding:12px; }
+.card h4{ margin:0 0 10px; font-size:14px; color:#003366; }
+.table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+.table th,.table td{ border:1px solid #e2e6ef; padding:6px 8px; text-align:left; vertical-align:top; }
+.table th{ background:#eef2fa; color:#1f2a44; width:220px; }
+#tblComptaDossier th{ width:auto; white-space:nowrap; }
+#tblComptaDossier td{ white-space:nowrap; }
+
+.badges{ display:flex; flex-wrap:wrap; gap:6px; }
+
+.card-title-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.card-title-row h4{ margin:0; }
+
+.inline-form{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.inline-form input[type="text"]{ min-width:180px; }
+.form-status{ font-size:12px; font-weight:bold; }
+
+/* ✅ Bulles cliquables OptionsWeb */
+.badge-btn{
+  border:0;
+  cursor:pointer;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:12px;
+  color:#fff;
+}
+.badge-btn.on{ background:#0b6b2e; }
+.badge-btn.off{ background:#6b7280; cursor:default; opacity:.85; }
+
+.status-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:12px;
+  font-weight:bold;
+  border:1px solid transparent;
+  white-space:nowrap;
+}
+.status-badge.true{ background:#2e7d32; color:#fff; border-color:#2e7d32; }
+.status-badge.false{ background:#c62828; color:#fff; border-color:#c62828; }
+.status-badge.neutral{ background:#eef2fa; color:#003366; border-color:#c9d5ea; }
+.status-badge.highlight{ padding:6px 14px; font-size:13px; box-shadow:0 0 0 2px rgba(11,107,46,.08); }
+.sub-analytic-row th{ padding-left:28px; color:#444; font-weight:normal; }
+
+.stats-table th,.stats-table td{ width:auto; white-space:nowrap; }
+.stats-table .count-cell{ font-weight:bold; color:#003366; }
+.viewer-title{ margin:0 0 10px; font-size:13px; color:#003366; }
+.viewer-meta{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+.viewer-meta .hint{ margin-top:0; }
+.table-scroll{ overflow:auto; max-height:360px; border:1px solid #e2e6ef; border-radius:6px; }
+
+details{ margin-top:10px; }
+summary{ cursor:pointer; color:#003366; font-weight:bold; }
+
+/* ✅ Réponse brute : anti-débordement + scroll vertical */
+pre{
+  background:#f4f6fa;
+  padding:12px;
+  border-radius:6px;
+  font-size:12px;
+
+  white-space:pre-wrap;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+
+  max-height:350px;
+  overflow-y:auto;
+  overflow-x:hidden;
+
+  box-sizing:border-box;
+}
+
+/* ✅ Colorisation JSON */
+.json-key{ color:#0b3d91; font-weight:bold; }
+.json-string{ color:#0b6b2e; }
+.json-number{ color:#8a2be2; }
+.json-boolean{ color:#b45309; font-weight:bold; }
+.json-null{ color:#6b7280; font-weight:bold; }
+.json-error{ color:#b00020; font-weight:bold; }
+
+.manual-box{ margin:12px 0; padding:12px; background:#fff7e6; border:1px solid #f0c36d; border-radius:8px; }
+.manual-box h4{ margin:0 0 10px; color:#7a4b00; font-size:14px; }
+.manual-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px 16px; }
+.manual-grid label{ display:block; font-weight:bold; margin-bottom:4px; }
+.manual-grid input{ width:100%; box-sizing:border-box; }
+
+.mini-note{margin-top:4px;font-size:11px;color:#666;}
+.inline-info{font-size:12px;color:#666;vertical-align:middle;}
+
+
+.param-header{ display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.toggle-panel-btn{ margin-bottom:0; display:inline-flex; align-items:center; gap:8px; transition:background-color .2s ease, box-shadow .2s ease; }
+.toggle-panel-btn .gear{ font-size:14px; }
+.toggle-panel-btn .chevron{ display:inline-block; transition:transform .25s ease; }
+.toggle-panel-btn.open .chevron{ transform:rotate(180deg); }
+.toggle-panel-btn.sso-ok{ background:#2e7d32; }
+.toggle-panel-btn.sso-ko{ background:#c62828; }
+#panelParametrage{ overflow:hidden; max-height:1400px; opacity:1; transition:max-height .3s ease, opacity .2s ease, margin-bottom .3s ease; margin-bottom:8px; }
+#panelParametrage.hidden{ display:block !important; max-height:0; opacity:0; margin-bottom:0; pointer-events:none; }
+.sso-state-badge{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+.sso-state-badge.ok{ background:#e8f5e9; color:#1b5e20; border:1px solid #81c784; }
+.sso-state-badge.ko{ background:#fdecea; color:#b71c1c; border:1px solid #ef9a9a; }
+
+
+/* =========================================================
+   Edition du dossier — reprise de la fenêtre du Générateur
+   ========================================================= */
+.card-title-row .edit-dossier-btn{
+  margin-left:auto;
+  background:#2563eb;
+  color:#fff;
+  padding:7px 12px;
+  font-size:12px;
+  font-weight:700;
+}
+.card-title-row .edit-dossier-btn:hover{ background:#1d4ed8; }
+
+.modal-backdrop{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:3000;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(17,24,39,.58);
+}
+.modal-backdrop.open{ display:flex; }
+.modal-backdrop.folder-editor-fullscreen{ padding:0; }
+
+.folder-editor-modal{
+  width:min(1500px,98vw);
+  max-height:92vh;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 24px 60px rgba(0,0,0,.28);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  transition:width .18s ease,height .18s ease,max-height .18s ease,border-radius .18s ease;
+}
+.folder-editor-modal.fullscreen{
+  width:100vw;
+  height:100vh;
+  max-height:100vh;
+  border-radius:0;
+}
+.folder-editor-modal.fullscreen .folder-editor-modal-body{
+  flex:1 1 auto;
+  min-height:0;
+}
+.folder-editor-modal-header{
+  padding:18px 20px;
+  border-bottom:1px solid #e5e7eb;
+  display:flex;
+  align-items:center;
+  gap:15px;
+}
+.folder-editor-modal-header h3{
+  margin:0;
+  font-size:20px;
+  color:#111827;
+}
+.folder-editor-header-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-left:auto;
+}
+.folder-editor-icon-btn{
+  border:0;
+  width:38px;
+  height:38px;
+  border-radius:9px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#f3f4f6;
+  color:#111827;
+  font-size:20px;
+  font-weight:700;
+  cursor:pointer;
+  padding:0;
+}
+.folder-editor-icon-btn:hover{ background:#e5e7eb; }
+
+.folder-editor-modal-body{
+  padding:20px;
+  overflow:auto;
+}
+.folder-editor-intro{
+  margin:0 0 16px;
+  padding:11px 13px;
+  border:1px solid #dbe3ef;
+  border-radius:9px;
+  background:#f8fafc;
+  color:#475569;
+  font-size:12px;
+  line-height:1.45;
+}
+#folderEditorForm{ display:block; }
+.folder-editor-tabs{
+  display:flex;
+  gap:0;
+  margin:0;
+  padding:0;
+  border-bottom:1px solid #cbd5e1;
+}
+.folder-editor-tab{
+  position:relative;
+  margin:0 0 -1px 0;
+  border:1px solid #cbd5e1;
+  border-right:0;
+  border-radius:0;
+  padding:11px 20px;
+  background:#f8fafc;
+  color:#334155;
+  font:inherit;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+}
+.folder-editor-tab:first-child{ border-radius:7px 0 0 0; }
+.folder-editor-tab:last-child{
+  border-right:1px solid #cbd5e1;
+  border-radius:0 7px 0 0;
+}
+.folder-editor-tab:hover{ background:#f1f5f9; color:#111827; }
+.folder-editor-tab.active{
+  background:#fff;
+  color:#111827;
+  font-weight:800;
+  border-bottom-color:#fff;
+  box-shadow:inset 0 -3px 0 #2563eb;
+}
+.folder-editor-section{
+  display:none;
+  margin-top:0;
+  padding:18px 16px 16px;
+  border:1px solid #cbd5e1;
+  border-top:0;
+  border-radius:0 0 10px 10px;
+  background:#fff;
+}
+.folder-editor-section.active{ display:block; }
+.folder-editor-groups{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+  align-items:start;
+}
+.folder-editor-group{
+  min-width:0;
+  margin:0;
+  padding:14px;
+  border:1px solid #d1d5db;
+  border-radius:8px;
+  background:#fafafa;
+}
+.folder-editor-group legend{
+  padding:0 7px;
+  color:#111827;
+  font-size:13px;
+  font-weight:800;
+}
+.folder-editor-group-full{ grid-column:1/-1; }
+.folder-editor-group-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:13px 16px;
+  align-items:end;
+}
+.folder-editor-section[data-folder-section="Fiscal"] .folder-editor-groups{
+  grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);
+  grid-template-areas:
+    "juridique fiscalite"
+    "comptabilite fiscalite";
+}
+.folder-editor-group-juridique{ grid-area:juridique; }
+.folder-editor-group-comptabilite{ grid-area:comptabilite; }
+.folder-editor-group-fiscalite{ grid-area:fiscalite; }
+.folder-editor-section[data-folder-section="Fiscal"] .folder-editor-group-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.folder-editor-section[data-folder-section="Fiscal"] .folder-editor-group-fiscalite .folder-editor-group-grid{
+  grid-template-columns:1fr;
+}
+.folder-editor-field{ min-width:0; }
+.folder-editor-field label{
+  display:block;
+  margin-bottom:6px;
+  color:#374151;
+  font-size:12px;
+  font-weight:700;
+}
+.folder-editor-field input,
+.folder-editor-field select{
+  width:100%;
+  min-width:0;
+  min-height:40px;
+  box-sizing:border-box;
+  border:1px solid #d1d5db;
+  border-radius:8px;
+  padding:8px 10px;
+  background:#fff;
+  color:#111827;
+  font:inherit;
+  font-size:13px;
+  outline:none;
+}
+.folder-editor-field input:focus,
+.folder-editor-field select:focus{
+  border-color:#93b4ff;
+  box-shadow:0 0 0 3px rgba(37,99,235,.10);
+}
+.folder-editor-field input:disabled,
+.folder-editor-field select:disabled{
+  background:#f3f4f6;
+  color:#6b7280;
+  border-color:#e5e7eb;
+  cursor:not-allowed;
+  opacity:1;
+}
+.folder-editor-field-readonly label{ color:#6b7280; }
+.folder-editor-error,
+.folder-editor-success{
+  display:none;
+  margin-top:14px;
+  padding:10px 12px;
+  border-radius:8px;
+  font-size:12px;
+  line-height:1.45;
+}
+.folder-editor-error{
+  border:1px solid #fecaca;
+  background:#fef2f2;
+  color:#b91c1c;
+}
+.folder-editor-success{
+  border:1px solid #bbf7d0;
+  background:#f0fdf4;
+  color:#166534;
+}
+.folder-editor-error.visible,
+.folder-editor-success.visible{ display:block; }
+.folder-editor-modal-footer{
+  padding:14px 20px 18px;
+  border-top:1px solid #e5e7eb;
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}
+.folder-editor-modal-footer button{
+  padding:10px 16px;
+  font-size:14px;
+  font-weight:700;
+}
+.folder-editor-cancel{
+  background:#f3f4f6;
+  color:#111827;
+}
+.folder-editor-cancel:hover{ background:#e5e7eb; }
+.folder-editor-save{ background:#2563eb; color:#fff; }
+.folder-editor-save:hover{ background:#1d4ed8; }
+.folder-editor-save.saving{ opacity:.65; cursor:wait; }
+
+@media(max-width:900px){
+  .folder-editor-groups,
+  .folder-editor-section[data-folder-section="Fiscal"] .folder-editor-groups{
+    grid-template-columns:1fr;
+  }
+  .folder-editor-section[data-folder-section="Fiscal"] .folder-editor-groups{
+    grid-template-areas:"juridique" "comptabilite" "fiscalite";
+  }
+  .folder-editor-group-grid,
+  .folder-editor-section[data-folder-section="Fiscal"] .folder-editor-group-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:620px){
+  .folder-editor-groups,
+  .folder-editor-group-grid,
+  .folder-editor-section[data-folder-section="Fiscal"] .folder-editor-group-grid{
+    grid-template-columns:1fr;
+  }
+  .folder-editor-tabs{ overflow-x:auto; }
+  .folder-editor-tab{ white-space:nowrap; }
+  .folder-editor-section{ padding:12px; }
+}
+
+</style>
+</head>
+
+<body>
+<h2>Dossier ACD — Connexion SSO</h2>
+
+<div class="box">
+
+  <div class="param-header">
+    <button id="btnToggleParametrage" type="button" class="toggle-panel-btn sso-ko"><span class="gear">⚙</span> Paramétrage <span class="chevron">▼</span></button>
+    <span id="ssoStateBadge" class="sso-state-badge ko">SSO KO</span>
+  </div>
+
+  <div id="panelParametrage">
+
+  <div class="row">
+    <span class="label">Referrer :</span>
+    <span id="referrer" class="value"></span>
+  </div>
+
+  <div class="row">
+    <span class="label">cnx :</span>
+    <span id="cnx" class="value"></span>
+  </div>
+
+  <div class="row">
+    <span class="label">uuid :</span>
+    <span id="uuid"></span>
+    <button id="btnCopyUuid" class="small-btn">Copier UUID</button>
+    <span id="uuidCopied" class="copied hidden">Copié</span>
+  </div>
+
+  <div id="manualContextBox" class="manual-box hidden">
+    <h4>Saisie manuelle des paramètres SSO</h4>
+    <div class="manual-grid">
+      <div>
+        <label for="manualReferrer">Referrer</label>
+        <input type="text" id="manualReferrer" placeholder="https://portail.exemple.fr/...">
+      </div>
+      <div>
+        <label for="manualCnx">cnx</label>
+        <input type="text" id="manualCnx" maxlength="50" placeholder="cnx">
+      </div>
+      <div>
+        <label for="manualUuid">UUID</label>
+        <input type="text" id="manualUuid" maxlength="80" placeholder="UUID">
+      </div>
+    </div>
+    <div class="hint">La saisie manuelle est disponible si Referrer = Aucun, cnx = Non présent ou uuid = Non présent.</div>
+  </div>
+
+  <div class="result-grid">
+    <div class="card">
+      <h4>Identité</h4>
+      <table class="table" id="tblIdentite"></table>
+    </div>
+    <div class="card">
+      <h4>Variables de session</h4>
+      <table class="table" id="tblVariables"></table>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="row">
+    <span class="label">IP Navigateur :</span>
+    <span id="browserIp" class="value"></span>
+  </div>
+
+  <div class="row">
+    <span class="label">X-CLIENT-IP :</span>
+    <input type="text" id="xClientIp">
+  </div>
+
+  <div class="row">
+    <label>
+      <input type="checkbox" id="useXClientIp">
+      Envoyer le header X-CLIENT-IP
+    </label>
+  </div>
+
+  <div class="row">
+    <span class="label">Autoriser la modification :</span>
+    <select id="allowDossierModification" class="param-select">
+      <option value="non" selected>Non</option>
+      <option value="oui">Oui</option>
+    </select>
+  </div>
+
+  <hr>
+
+  <div class="row">
+    <span class="label">URL API :</span>
+    <span id="apiUrl" class="value"></span>
+  </div>
+
+  <div class="row row-portal">
+    <span class="label">URL Portail :</span>
+    <span id="portalUrl" class="value"></span>
+
+    <div class="portal-actions">
+      <button id="btnCopyPortal" class="small-btn">Copier</button>
+      <button id="btnPortal" class="small-btn">Ouvrir</button>
+      <span id="portalCopied" class="copied hidden">Copié</span>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="btnTest">Tester SSO (UUID)</button>
+    <button id="btnSwagger">Ouvrir Swagger</button>
+    <button id="btnCurl">Copier CURL</button>
+    <span id="curlCopied" class="copied hidden">Copié</span>
+  </div>
+
+  <div id="dossierSwitcher" class="card hidden" style="margin-top:12px;">
+    <h4>Changer de dossier</h4>
+    <div class="inline-form">
+      <label for="codeDossier"><strong>CodeDossier</strong></label>
+      <input type="text" id="codeDossier" maxlength="30" placeholder="Ex. BAS01">
+      <button id="btnChangeDossier" type="button">Changer de dossier</button>
+      <span id="dossierStatus" class="form-status"></span>
+    </div>
+    <div class="hint">Appel API : POST /v2/sessions/dossier avec le header UUID et le code dossier dans le body.</div>
+  </div>
+
+  </div>
+
+  <div id="zoneResultat">
+  <h3>Résultat</h3>
+  <div id="resultTitle"></div>
+  <div id="autoIndicator" class="auto-badge hidden">⚡ Auto test déclenché</div>
+
+  <!-- Résultat formaté -->
+  <div id="resultFormatted" class="hidden"></div>
+
+    <div class="card hidden" id="cardInfosDossier">
+      <div class="card-title-row">
+        <h4>Informations dossier</h4>
+        <button id="btnEditDossier" type="button" class="edit-dossier-btn hidden">Modifier le dossier</button>
+      </div>
+      <table class="table" id="tblInfosDossier"></table>
+    </div>
+
+    <div class="card hidden" id="cardComptaDossier">
+      <div class="card-title-row">
+        <h4>Paramétrage comptable du dossier</h4>
+        <div id="badgePublieISuite"></div>
+      </div>
+      <table class="table" id="tblComptaDossier"></table>
+    </div>
+
+    <div class="card hidden" id="cardComptaStats">
+      <h4>Données comptables publiées</h4>
+      <table class="table stats-table" id="tblComptaStats"></table>
+    </div>
+
+    <div class="card hidden" id="cardComptaViewer">
+      <div class="card-title-row">
+        <h4 id="comptaViewerTitle">Détail des données comptables</h4>
+        <div class="viewer-meta">
+          <span id="comptaViewerCount"></span>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="table" id="tblComptaViewer"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Accès i-suite ouvert sur le dossier</h4>
+      <div class="badges" id="badgesOptions"></div>
+    </div>
+
+  <details>
+    <summary>Réponse brute</summary>
+
+    <div style="margin:10px 0; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button id="btnCopyJson" class="small-btn">Copier JSON</button>
+      <span id="jsonCopied" class="copied hidden">Copié</span>
+    </div>
+
+    <pre id="result"></pre>
+  </details>
+  </div>
+
+</div>
+
+
+<!-- MODALE MODIFICATION DOSSIER -->
+<div class="modal-backdrop" id="folderEditorModal" aria-hidden="true">
+  <div class="folder-editor-modal" id="folderEditorDialog" role="dialog" aria-modal="true" aria-labelledby="folderEditorModalTitle">
+    <div class="folder-editor-modal-header">
+      <h3 id="folderEditorModalTitle">Modifier le dossier</h3>
+      <div class="folder-editor-header-actions">
+        <button class="folder-editor-icon-btn" id="folderEditorFullscreenButton" type="button"
+                aria-label="Passer en pleine page" title="Passer en pleine page" aria-pressed="false">⛶</button>
+        <button class="folder-editor-icon-btn" id="folderEditorModalClose" type="button" aria-label="Fermer">×</button>
+      </div>
+    </div>
+    <div class="folder-editor-modal-body">
+      <p class="folder-editor-intro">
+        Modifiez les informations du dossier courant. Le bouton Enregistrer transmet uniquement les champs modifiables à l’API.
+      </p>
+      <div id="folderEditorForm"></div>
+      <div class="folder-editor-error" id="folderEditorError" role="alert"></div>
+      <div class="folder-editor-success" id="folderEditorSuccess" role="status"></div>
+    </div>
+    <div class="folder-editor-modal-footer">
+      <button class="folder-editor-cancel" id="folderEditorCloseButton" type="button">Fermer</button>
+      <button class="folder-editor-cancel hidden" id="folderEditorCancelButton" type="button">Annuler</button>
+      <button class="folder-editor-save hidden" id="folderEditorSaveButton" type="button">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+/* ---------- Utils ---------- */
+function normalize(u){ return (u||"").replace(/\/+$/,""); }
+
+function escapeHtml(s){
+  return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+  });
+}
+
+function showCopied(id){
+  var el = document.getElementById(id);
+  el.classList.remove("hidden");
+  setTimeout(function(){ el.classList.add("hidden"); }, 2000);
+}
+
+function yesNoFromON(value){
+  if(value === "O") return "Oui";
+  if(value === "N") return "Non";
+  return value;
+}
+
+function boolBadge(value, highlight){
+  var v = (value === true || value === "true" || value === 1 || value === "1");
+  var label = v ? "Oui" : "Non";
+  var cls = "status-badge " + (v ? "true" : "false") + (highlight ? " highlight" : "");
+  return "<span class='"+cls+"'>"+label+"</span>";
+}
+
+function valueBadge(label, type, highlight){
+  var cls = "status-badge " + (type || "neutral") + (highlight ? " highlight" : "");
+  return "<span class='"+cls+"'>"+escapeHtml(label)+"</span>";
+}
+
+function resetComptaViewer(){
+  document.getElementById("tblComptaViewer").innerHTML = "";
+  document.getElementById("comptaViewerTitle").textContent = "Détail des données comptables";
+  document.getElementById("comptaViewerCount").innerHTML = "";
+  document.getElementById("cardComptaViewer").classList.add("hidden");
+}
+
+function resetComptaStats(){
+  document.getElementById("tblComptaStats").innerHTML = "";
+  document.getElementById("cardComptaStats").classList.add("hidden");
+  resetComptaViewer();
+}
+
+function resetComptaDossier(){
+  document.getElementById("tblComptaDossier").innerHTML = "";
+  document.getElementById("badgePublieISuite").innerHTML = "";
+  document.getElementById("cardComptaDossier").classList.add("hidden");
+  resetComptaStats();
+}
+
+function resetInfosDossier(){
+  document.getElementById("tblInfosDossier").innerHTML = "";
+  document.getElementById("cardInfosDossier").classList.add("hidden");
+  var editBtn = document.getElementById("btnEditDossier");
+  if(editBtn) editBtn.classList.add("hidden");
+  currentSessionDossierData = null;
+  currentEditableDossier = null;
+  folderEditorInitialValues = null;
+}
+
+function isFilled(value){
+  if(value === null || value === undefined) return false;
+  if(typeof value === "string") return value.trim() !== "";
+  return true;
+}
+
+function joinNonEmpty(parts, sep){
+  return (parts || []).filter(isFilled).map(function(x){ return String(x).trim(); }).join(sep || " " );
+}
+
+function renderInfosDossier(data){
+  var card = document.getElementById("cardInfosDossier");
+  var tbl = document.getElementById("tblInfosDossier");
+
+  if(!data || typeof data !== "object"){
+    resetInfosDossier();
+    return;
+  }
+
+  var rows = [];
+  function pushRow(label, value){
+    if(!isFilled(value)) return;
+    rows.push("<tr><th>" + escapeHtml(label) + "</th><td>" + escapeHtml(String(value)) + "</td></tr>");
+  }
+
+  var titreCode = (data.Titre && typeof data.Titre === "object") ? (data.Titre.Code || data.Titre.Libelle || "") : data.Titre;
+  var nomDossier = data.Nom || "";
+  var codeDossier = data.Code || "";
+  var headerBlocks = [];
+  if(isFilled(titreCode)) headerBlocks.push("<div><strong>Titre :</strong> " + escapeHtml(String(titreCode)) + "</div>");
+  if(isFilled(nomDossier)) headerBlocks.push("<div><strong>Nom du dossier :</strong> " + escapeHtml(String(nomDossier)) + "</div>");
+  if(isFilled(codeDossier)) headerBlocks.push("<div><strong>Code du dossier :</strong> " + escapeHtml(String(codeDossier)) + "</div>");
+  if(headerBlocks.length){
+    rows.push(
+      "<tr>" +
+        "<th>Informations principales</th>" +
+        "<td colspan='5'><div style='display:flex;gap:30px;flex-wrap:wrap'>" + headerBlocks.join("") + "</div></td>" +
+      "</tr>"
+    );
+  }
+
+  var genre = data.Genre || {};
+  var societe = data.Societe || {};
+  var genreValue = joinNonEmpty([genre.Code, genre.Libelle], " - ");
+  var cabinetValue = societe.Code || "";
+  if(isFilled(genreValue) || isFilled(cabinetValue)){
+    rows.push(
+      "<tr>" +
+        "<th>Genre</th><td>" + escapeHtml(String(genreValue || "")) + "</td>" +
+        "<th>Cabinet affectation</th><td>" + escapeHtml(String(cabinetValue || "")) + "</td>" +
+      "</tr>"
+    );
+  }
+
+  var activite = data.Activite || {};
+  pushRow("Activité", activite.Libelle || activite.Code);
+
+  var adresse = joinNonEmpty([data.Adresse1, data.Adresse2, data.CodePostal, data.Ville], " ");
+  pushRow("Adresse", adresse);
+  pushRow("Email", data.Email);
+
+  var codeNafValue = data.CodeNAF || "";
+  var tvaIntracomValue = data.NumeroTVAIntracom || "";
+  var siretValue = data.Siret || "";
+  if(isFilled(codeNafValue) || isFilled(tvaIntracomValue) || isFilled(siretValue)){
+    rows.push(
+      "<tr>" +
+        "<th>Code NAF</th><td>" + escapeHtml(String(codeNafValue || "")) + "</td>" +
+        "<th>TVA Intracom</th><td>" + escapeHtml(String(tvaIntracomValue || "")) + "</td>" +
+        "<th>SIRET</th><td>" + escapeHtml(String(siretValue || "")) + "</td>" +
+      "</tr>"
+    );
+  }
+
+  var collabRows = [];
+  for(var i=1;i<=15;i++){
+    var key = "CollaborateurNiveau" + i;
+    var c = (data.Collaborateurs || {})[key];
+    if(!c || typeof c !== "object") continue;
+    var label = c.Libelle || c.Niveau || ("Niveau " + i);
+    var value = c.Code || c.Collaborateur || c.Valeur || "";
+    if(!isFilled(label) && !isFilled(value)) continue;
+    collabRows.push("<div>" + escapeHtml(String(label)) + (isFilled(value) ? " : <strong>" + escapeHtml(String(value)) + "</strong>" : "") + "</div>");
+  }
+  if(collabRows.length){
+    rows.push("<tr><th>Collaborateurs affectés</th><td>" + collabRows.join("") + "</td></tr>");
+  }
+
+  tbl.innerHTML = rows.join("") || "<tr><td>Aucune donnée</td></tr>";
+  card.classList.toggle("hidden", rows.length === 0);
+}
+
+function fetchInfosDossier(){
+  var ctx = getContext();
+  if(!ctx.apiUrl || !(lastValidUuid || ctx.uuid)){
+    resetInfosDossier();
+    return Promise.resolve();
+  }
+
+  var headers = {
+    "accept":"text/plain",
+    "UUID": lastValidUuid || ctx.uuid
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  return fetch(normalize(ctx.apiUrl) + "/v1/sessions/dossier", {
+    method: "GET",
+    headers: headers
+  })
+  .then(function(r){
+    return r.text().then(function(t){
+      return {ok:r.ok,status:r.status,text:t};
+    });
+  })
+  .then(function(res){
+    if(!res.ok){
+      resetInfosDossier();
+      return;
+    }
+    try{
+      var parsedDossier = JSON.parse(res.text);
+      renderInfosDossier(parsedDossier);
+      currentSessionDossierData = parsedDossier;
+      return loadEditableDossierData(parsedDossier);
+    }catch(e){
+      resetInfosDossier();
+    }
+  })
+  .catch(function(){
+    resetInfosDossier();
+  });
+}
+
+function apiGetJson(path){
+  var ctx = getContext();
+  var currentUuid = lastValidUuid || ctx.uuid;
+  if(!ctx.apiUrl || !currentUuid){
+    return Promise.reject(new Error("Contexte API incomplet"));
+  }
+
+  var headers = {
+    "accept":"text/plain",
+    "UUID": currentUuid
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  return fetch(normalize(ctx.apiUrl) + path, {
+    method: "GET",
+    headers: headers
+  })
+  .then(function(r){
+    return r.text().then(function(t){
+      if(!r.ok){
+        throw new Error(t || ("HTTP " + r.status));
+      }
+      try{
+        return JSON.parse(t);
+      }catch(e){
+        throw new Error("Réponse JSON invalide");
+      }
+    });
+  });
+}
+
+var COMPTA_DATASETS = [
+  { key:"journaux", label:"Journaux", path:"/v1/compta/journal" },
+  { key:"generaux", label:"Comptes généraux", path:"/v1/compta/comptes/generaux" },
+  { key:"clients", label:"Comptes clients", path:"/v1/compta/comptes/clients" },
+  { key:"fournisseurs", label:"Comptes fournisseurs", path:"/v1/compta/comptes/fournisseurs" },
+  { key:"collectifs", label:"Comptes collectifs", path:"/v1/compta/comptes/collectifs" },
+  { key:"exercices", label:"Exercices", path:"/v1/compta/exercices" }
+];
+
+var comptaDataCache = {};
+var currentOpenDatasetKey = "";
+
+function countItems(data){
+  if(Array.isArray(data)) return data.length;
+  if(data && typeof data === "object") return Object.keys(data).length;
+  return 0;
+}
+
+function formatDateFr(value){
+  if(!value) return "";
+  var str = String(value).trim();
+  var m = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m){
+    return m[3] + "/" + m[2] + "/" + m[1];
+  }
+  return str;
+}
+
+function findDefaultExercice(data){
+  if(!Array.isArray(data)) return null;
+
+  var defaultExercise = data.find(function(item){
+    return item && (
+      item.Defaut === true ||
+      item.ParDefaut === true ||
+      item.ExerciceParDefaut === true ||
+      item.EstDefaut === true ||
+      item.Courant === true ||
+      item.Actif === true
+    );
+  });
+
+  return defaultExercise || data[0] || null;
+}
+
+function getDefaultExerciceInfo(data){
+  var ex = findDefaultExercice(data);
+  if(!ex || typeof ex !== "object") return "";
+
+  var start = ex.DateDebut || ex.Debut || ex.DateOuverture || ex.StartDate || "";
+  var end = ex.DateFin || ex.Fin || ex.DateCloture || ex.EndDate || "";
+
+  if(!start && !end) return "";
+  return "Défaut : " + [formatDateFr(start), formatDateFr(end)].filter(Boolean).join(" → ");
+}
+
+function renderComptaStats(){
+  var tbl = document.getElementById("tblComptaStats");
+  var card = document.getElementById("cardComptaStats");
+  var rows = "";
+
+  COMPTA_DATASETS.forEach(function(ds){
+    var entry = comptaDataCache[ds.key];
+    if(!entry){
+      rows += "<tr><th>" + escapeHtml(ds.label) + "</th><td class='count-cell'>…</td><td><button type='button' class='small-btn' disabled>Voir</button></td></tr>";
+      return;
+    }
+
+    if(entry.error){
+      rows += "<tr><th>" + escapeHtml(ds.label) + "</th><td class='count-cell'><span class='err'>Erreur</span></td><td><button type='button' class='small-btn' disabled>Voir</button></td></tr>";
+      return;
+    }
+
+    var countHtml = escapeHtml(String(entry.count));
+    var extraInfo = ds.key === "exercices" ? getDefaultExerciceInfo(entry.data) : "";
+    var btnLabel = currentOpenDatasetKey === ds.key ? "Replier" : "Voir";
+
+    rows += "<tr>" +
+      "<th>" + escapeHtml(ds.label) + "</th>" +
+      "<td class='count-cell'>" + countHtml + (extraInfo ? "<div class='mini-note'>" + escapeHtml(extraInfo) + "</div>" : "") + "</td>" +
+      "<td><button type='button' class='small-btn' data-dataset='" + escapeHtml(ds.key) + "'>" + btnLabel + "</button></td>" +
+    "</tr>";
+  });
+
+  tbl.innerHTML = rows || "<tr><td>Aucune donnée</td></tr>";
+  tbl.onclick = function(ev){
+    var btn = ev.target && ev.target.closest ? ev.target.closest("button[data-dataset]") : null;
+    if(!btn) return;
+    showComptaDataset(btn.getAttribute("data-dataset"));
+  };
+  card.classList.remove("hidden");
+}
+
+function datasetToRows(data){
+  if(Array.isArray(data)) return data;
+  if(data && typeof data === "object") return [data];
+  return [];
+}
+
+function showComptaDataset(datasetKey){
+  var ds = COMPTA_DATASETS.find(function(x){ return x.key === datasetKey; });
+  var entry = comptaDataCache[datasetKey];
+  var card = document.getElementById("cardComptaViewer");
+  var title = document.getElementById("comptaViewerTitle");
+  var count = document.getElementById("comptaViewerCount");
+  var tbl = document.getElementById("tblComptaViewer");
+
+  if(currentOpenDatasetKey === datasetKey){
+    currentOpenDatasetKey = "";
+    resetComptaViewer();
+    renderComptaStats();
+    return;
+  }
+
+  if(!ds || !entry || entry.error){
+    currentOpenDatasetKey = "";
+    resetComptaViewer();
+    renderComptaStats();
+    return;
+  }
+
+  currentOpenDatasetKey = datasetKey;
+  var rows = datasetToRows(entry.data);
+  title.textContent = ds.label;
+  var extraInfo = ds.key === "exercices" ? getDefaultExerciceInfo(entry.data) : "";
+  count.innerHTML = valueBadge(String(entry.count) + " élément" + (entry.count > 1 ? "s" : ""), "neutral", false) +
+    (extraInfo ? " <span class='inline-info'>" + escapeHtml(extraInfo) + "</span>" : "");
+
+  if(!rows.length){
+    tbl.innerHTML = "<tr><td>Aucune donnée</td></tr>";
+    card.classList.remove("hidden");
+    renderComptaStats();
+    return;
+  }
+
+  var headersMap = {};
+  rows.forEach(function(row){
+    if(row && typeof row === "object"){
+      Object.keys(row).forEach(function(k){ headersMap[k] = true; });
+    }
+  });
+  var headers = Object.keys(headersMap);
+
+  var html = "<tr>" + headers.map(function(h){ return "<th>" + escapeHtml(h) + "</th>"; }).join("") + "</tr>";
+  rows.forEach(function(row){
+    html += "<tr>" + headers.map(function(h){
+      var val = row && typeof row === "object" ? row[h] : "";
+      if(val === null || val === undefined) val = "";
+      if(typeof val === "object") val = JSON.stringify(val);
+      return "<td>" + escapeHtml(String(val)) + "</td>";
+    }).join("") + "</tr>";
+  });
+
+  tbl.innerHTML = html;
+  card.classList.remove("hidden");
+  renderComptaStats();
+}
+
+function fetchPublishedComptaData(){
+  comptaDataCache = {};
+  currentOpenDatasetKey = "";
+  renderComptaStats();
+
+  return Promise.all(COMPTA_DATASETS.map(function(ds){
+    return apiGetJson(ds.path)
+      .then(function(data){
+        comptaDataCache[ds.key] = { data:data, count:countItems(data) };
+      })
+      .catch(function(error){
+        comptaDataCache[ds.key] = { error:error && error.message ? error.message : "Erreur" };
+      })
+      .then(function(){
+        renderComptaStats();
+      });
+  }));
+}
+
+function renderComptaDossier(data){
+  var card = document.getElementById("cardComptaDossier");
+  var tbl = document.getElementById("tblComptaDossier");
+  var badge = document.getElementById("badgePublieISuite");
+
+  if(!data || typeof data !== "object"){
+    resetComptaDossier();
+    return;
+  }
+
+  badge.innerHTML = data.PublieSurISuite
+    ? valueBadge("Publié sur i-Suite : Oui", "true", true)
+    : valueBadge("Publié sur i-Suite : Non", "false", true);
+
+  var analytique = data.Analytique || {};
+  var param = analytique.Parametrage || {};
+  var analytiqueActive = !!analytique.Active;
+  var hierarchise = (param.NonHierarchise === undefined || param.NonHierarchise === null) ? "" : (!param.NonHierarchise);
+
+  var rows = "";
+  rows += "<tr>" +
+    "<th>Publié sur i-Suite</th><td>" + boolBadge(!!data.PublieSurISuite, true) + "</td>" +
+    "<th>Longueur comptes</th><td>" + escapeHtml(data.LongueurComptes ?? "") + "</td>" +
+    "<th>Gestion numéro facture</th><td>" + escapeHtml(yesNoFromON(data.GestionNumeroFacture) ?? "") + "</td>" +
+    "<th>Gestion quantités</th><td>" + boolBadge(!!data.GestionQuantites) + "</td>" +
+    "<th>Gestion échéancier</th><td>" + escapeHtml(yesNoFromON(data.GestionEcheancier) ?? "") + "</td>" +
+  "</tr>";
+
+  rows += "<tr><th>Analytique active</th><td colspan='9'>" + boolBadge(analytiqueActive) + "</td></tr>";
+
+  if(analytiqueActive){
+    [
+      ["Analytique hiérarchisée", hierarchise === "" ? "" : boolBadge(!!hierarchise)],
+      ["Nombre de niveaux analytiques", escapeHtml(param.NombreNiveaux ?? "")],
+      ["Analytique sur comptes de charges", param.CompteCharges === undefined ? "" : boolBadge(!!param.CompteCharges)],
+      ["Analytique sur comptes de produits", param.CompteProduits === undefined ? "" : boolBadge(!!param.CompteProduits)],
+      ["Analytique sur comptes de bilan", param.CompteBilan === undefined ? "" : boolBadge(!!param.CompteBilan)]
+    ].forEach(function(pair){
+      if(pair[1] === "" || pair[1] === undefined || pair[1] === null) return;
+      rows += "<tr class='sub-analytic-row'><th>↳ "+escapeHtml(pair[0])+"</th><td>"+pair[1]+"</td></tr>";
+    });
+  }
+
+  tbl.innerHTML = rows || "<tr><td>Aucune donnée</td></tr>";
+  card.classList.remove("hidden");
+
+  if(data.PublieSurISuite){
+    fetchPublishedComptaData();
+  } else {
+    resetComptaStats();
+  }
+}
+
+function fetchComptaDossier(){
+  var ctx = getContext();
+  if(!ctx.apiUrl || !(lastValidUuid || ctx.uuid)){
+    resetComptaDossier();
+    return Promise.resolve();
+  }
+
+  var headers = {
+    "accept":"text/plain",
+    "UUID": lastValidUuid || ctx.uuid
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  return fetch(normalize(ctx.apiUrl) + "/v1/compta/dossier", {
+    method: "GET",
+    headers: headers
+  })
+  .then(function(r){
+    return r.text().then(function(t){
+      return {ok:r.ok,status:r.status,text:t};
+    });
+  })
+  .then(function(res){
+    if(!res.ok){
+      resetComptaDossier();
+      return;
+    }
+    try{
+      renderComptaDossier(JSON.parse(res.text));
+    }catch(e){
+      resetComptaDossier();
+    }
+  })
+  .catch(function(){
+    resetComptaDossier();
+  });
+}
+
+function copyText(text,id){
+  if(!text) return;
+  var ta=document.createElement("textarea");
+  ta.value=text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  showCopied(id);
+}
+
+function showAutoBadge(){
+  var b=document.getElementById("autoIndicator");
+  b.classList.remove("hidden");
+  b.offsetHeight;
+  b.classList.add("show");
+}
+
+function hideAutoBadge(){
+  var b=document.getElementById("autoIndicator");
+  b.classList.remove("show");
+  setTimeout(function(){ b.classList.add("hidden"); }, 250);
+}
+
+/* ---------- JSON pretty + highlight + copy ---------- */
+var lastPrettyJsonText = "";
+
+function prettyJsonOrText(rawText){
+  try{
+    var obj = JSON.parse(rawText);
+    return { isJson: true, prettyText: JSON.stringify(obj, null, 2) };
+  }catch(e){
+    return { isJson: false, prettyText: rawText };
+  }
+}
+
+function highlightJson(prettyText, isJson){
+  if(!isJson){
+    return "<span class='json-error'>Réponse non JSON</span>\n" + escapeHtml(prettyText);
+  }
+
+  var json = escapeHtml(prettyText);
+
+  // clés: "xxx":
+  json = json.replace(/(&quot;.*?&quot;)(\s*:\s*)/g, function(_, key, sep){
+    return "<span class='json-key'>" + key + "</span>" + sep;
+  });
+
+  // strings: "..."
+  json = json.replace(/(:\s*)(&quot;.*?&quot;)/g, function(_, sep, str){
+    return sep + "<span class='json-string'>" + str + "</span>";
+  });
+
+  // numbers
+  json = json.replace(/(:\s*)(-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g, function(_, sep, num){
+    return sep + "<span class='json-number'>" + num + "</span>";
+  });
+
+  // booleans
+  json = json.replace(/(:\s*)(true|false)\b/g, function(_, sep, b){
+    return sep + "<span class='json-boolean'>" + b + "</span>";
+  });
+
+  // null
+  json = json.replace(/(:\s*)(null)\b/g, function(_, sep, n){
+    return sep + "<span class='json-null'>" + n + "</span>";
+  });
+
+  return json;
+}
+
+function setRawResult(text){
+  var pre = document.getElementById("result");
+  var r = prettyJsonOrText(text);
+  lastPrettyJsonText = r.prettyText;
+  pre.innerHTML = highlightJson(r.prettyText, r.isJson);
+  document.getElementById("btnCopyJson").disabled = !lastPrettyJsonText;
+}
+
+/* ---------- Read context (case-insensitive CNX/UUID) ---------- */
+/*
+   Le contexte SSO est conservé uniquement pendant la session de l'onglet.
+   Les valeurs réellement reçues lors d'une nouvelle ouverture SSO restent
+   prioritaires sur celles mémorisées dans sessionStorage.
+*/
+var SSO_SESSION_KEYS = {
+  referrer: "acd_sso_referrer",
+  cnx: "acd_sso_cnx",
+  uuid: "acd_sso_uuid"
+};
+
+function readSsoSessionValue(key){
+  try{
+    return sessionStorage.getItem(key) || "";
+  }catch(e){
+    return "";
+  }
+}
+
+function writeSsoSessionValue(key, value){
+  try{
+    var normalized = String(value || "").trim();
+    if(normalized){
+      sessionStorage.setItem(key, normalized);
+    }
+  }catch(e){
+    // sessionStorage peut être indisponible selon le contexte du navigateur.
+  }
+}
+
+function isCurrentPageReferrer(value){
+  if(!value) return false;
+  try{
+    var refUrl = new URL(value, window.location.href);
+    return refUrl.origin === window.location.origin && refUrl.pathname === window.location.pathname;
+  }catch(e){
+    return false;
+  }
+}
+
+var storedReferrer = readSsoSessionValue(SSO_SESSION_KEYS.referrer);
+var storedCnx = readSsoSessionValue(SSO_SESSION_KEYS.cnx);
+var storedUuid = readSsoSessionValue(SSO_SESSION_KEYS.uuid);
+
+// Un referrer pointant vers la page elle-même correspond typiquement à un
+// rechargement : on conserve alors le referrer SSO mémorisé précédemment.
+var pageReferrer = document.referrer || "";
+var detectedReferrer = (pageReferrer && !isCurrentPageReferrer(pageReferrer))
+  ? pageReferrer
+  : storedReferrer;
+
+var params = new URLSearchParams(window.location.search);
+var apiOverride = params.get("api");
+
+var urlCnx = "";
+var urlUuid = "";
+params.forEach(function(value,key){
+  var k = (key || "").toLowerCase();
+  if(k === "cnx") urlCnx = value;
+  if(k === "uuid") urlUuid = value;
+});
+
+// Les paramètres de la connexion courante sont prioritaires sur la session.
+var detectedCnx = (urlCnx || storedCnx || "").trim();
+var detectedUuid = (urlUuid || storedUuid || "").replace(/\/$/,"").trim();
+
+// Dès qu'un nouveau contexte SSO est reçu, il remplace la valeur mémorisée.
+if(pageReferrer && !isCurrentPageReferrer(pageReferrer)){
+  writeSsoSessionValue(SSO_SESSION_KEYS.referrer, pageReferrer);
+}
+if(urlCnx){
+  writeSsoSessionValue(SSO_SESSION_KEYS.cnx, urlCnx);
+}
+if(urlUuid){
+  writeSsoSessionValue(SSO_SESSION_KEYS.uuid, detectedUuid);
+}
+
+function isUuidValid(v){
+  return /^[a-z0-9]+$/i.test((v || "").trim());
+}
+
+function computeApiUrl(referrerValue, cnxValue){
+  if(apiOverride) return normalize(apiOverride);
+  if(referrerValue && cnxValue){
+    try{
+      var r = new URL(referrerValue);
+      return normalize(r.origin + "/" + cnxValue + "/api");
+    }catch(e){}
+  }
+  return null;
+}
+
+function computePortalUrl(apiUrlValue, cnxValue, uuidValue){
+  if(apiUrlValue && isUuidValid(uuidValue) && cnxValue){
+    try{
+      var origin = new URL(apiUrlValue).origin;
+      return origin + "/" + cnxValue + "/isuiteexpert/?UUID=" + encodeURIComponent(uuidValue);
+    }catch(e){}
+  }
+  return null;
+}
+
+var missingAny = (!detectedReferrer || !detectedCnx || !detectedUuid);
+var manualBox = document.getElementById("manualContextBox");
+var manualReferrerInput = document.getElementById("manualReferrer");
+var manualCnxInput = document.getElementById("manualCnx");
+var manualUuidInput = document.getElementById("manualUuid");
+
+if(missingAny){
+  manualBox.classList.remove("hidden");
+}
+
+manualReferrerInput.value = detectedReferrer || "";
+manualCnxInput.value = detectedCnx || "";
+manualUuidInput.value = detectedUuid || "";
+
+var referrer = detectedReferrer;
+var cnx = detectedCnx;
+var uuid = detectedUuid;
+var uuidValid = isUuidValid(uuid);
+var apiUrl = null;
+var portalUrl = null;
+
+function refreshContextDisplay(){
+  referrer = (manualBox.classList.contains("hidden") ? detectedReferrer : (manualReferrerInput.value || "").trim()) || "";
+  cnx = (manualBox.classList.contains("hidden") ? detectedCnx : (manualCnxInput.value || "").trim()) || "";
+  uuid = ((manualBox.classList.contains("hidden") ? detectedUuid : (manualUuidInput.value || "").trim()) || "").replace(/\/$/,"");
+  uuidValid = isUuidValid(uuid);
+  apiUrl = computeApiUrl(referrer, cnx);
+  portalUrl = computePortalUrl(apiUrl, cnx, uuid);
+
+  document.getElementById("referrer").textContent = referrer || "Aucun";
+  document.getElementById("cnx").textContent = cnx || "Non présent";
+  document.getElementById("uuid").textContent = uuid || "Non présent";
+  document.getElementById("apiUrl").textContent = apiUrl || "Non disponible";
+  document.getElementById("portalUrl").textContent = portalUrl || "Non disponible";
+  document.getElementById("btnCopyUuid").disabled = !uuidValid;
+  document.getElementById("btnPortal").disabled = !portalUrl;
+  document.getElementById("btnCopyPortal").disabled = !portalUrl;
+
+  // Mémorisation de secours pour les rechargements de la page dans le même onglet.
+  if(referrer) writeSsoSessionValue(SSO_SESSION_KEYS.referrer, referrer);
+  if(cnx) writeSsoSessionValue(SSO_SESSION_KEYS.cnx, cnx);
+  if(uuidValid) writeSsoSessionValue(SSO_SESSION_KEYS.uuid, uuid);
+}
+
+refreshContextDisplay();
+
+/* ---------- Render formatted result ---------- */
+function renderSsoResult(data){
+  var formatted = document.getElementById("resultFormatted");
+  var tblId = document.getElementById("tblIdentite");
+  var badges = document.getElementById("badgesOptions");
+  var tblVars = document.getElementById("tblVariables");
+  var dossierSwitcher = document.getElementById("dossierSwitcher");
+
+  tblId.innerHTML = "";
+  badges.innerHTML = "";
+  tblVars.innerHTML = "";
+  formatted.classList.add("hidden");
+  dossierSwitcher.classList.add("hidden");
+  resetComptaDossier();
+
+  if(!data || typeof data !== "object") return;
+
+  // Identité (nested) + fallback flat
+  var identObj = (data.Identite && typeof data.Identite === "object") ? data.Identite : null;
+  var typeVal   = identObj ? identObj.Type   : data.Type;
+  var codeVal   = identObj ? identObj.Code   : data.Code;
+  var emailVal  = identObj ? identObj.Email  : data.Email;
+  var prenomVal = identObj ? identObj.Prenom : data.Prenom;
+  var nomVal    = identObj ? identObj.Nom    : data.Nom;
+
+  var rowsId = "";
+  [
+    ["Type", typeVal],
+    ["Code", codeVal],
+    ["Email", emailVal],
+    ["Prenom", prenomVal],
+    ["Nom", nomVal]
+  ].forEach(function(pair){
+    var key = pair[0];
+    var val = pair[1];
+    if(val === undefined || val === null || val === "") return;
+
+    var valHtml = escapeHtml(val);
+    if(key === "Type" || key === "Code"){
+      valHtml = "<strong>" + valHtml + "</strong>";
+    }
+    rowsId += "<tr><th>"+escapeHtml(key)+"</th><td>"+valHtml+"</td></tr>";
+  });
+  tblId.innerHTML = rowsId || "<tr><td>Aucune donnée</td></tr>";
+
+  // VariablesSession
+  var vars = data.VariablesSession;
+  if(vars && typeof vars === "object"){
+    var rowsV = "";
+    Object.keys(vars).forEach(function(k){
+      if(k === "COL_CODE") return;
+      var libelle = (k === "ADR_CODE") ? "Code dossier" : k;
+      rowsV += "<tr><th>"+escapeHtml(libelle)+"</th><td>"+escapeHtml(vars[k])+"</td></tr>";
+    });
+    tblVars.innerHTML = rowsV || "<tr><td>Aucune variable</td></tr>";
+  } else {
+    tblVars.innerHTML = "<tr><td>Aucune variable</td></tr>";
+  }
+
+  // OptionsWeb -> bulles vertes cliquables selon table
+  var CMD_MAP = [
+    { startsWith: "i-Admin",        cmd: "IADMIN" },
+    { startsWith: "i-Ged",          cmd: "IGED" },
+    { startsWith: "i-Dépôt",        cmd: "IDEPOT" },
+    { startsWith: "i-Comptes",      cmd: "ICOMPTES" },
+    { startsWith: "i-Banque",       cmd: "IBANQUE" },
+    { startsWith: "i-Comptabilité", cmd: "comptaentreprise" },
+    { startsWith: "i-Facture",      cmd: "IFACTURE" },
+    { startsWith: "i-Dossier",      cmd: "IDOSSIER" },
+    { startsWith: "i-Stats",        cmd: "ISTATS" }
+  ];
+
+  function resolveCmd(libelle){
+    var l = String(libelle || "").trim();
+    for(var i=0;i<CMD_MAP.length;i++){
+      if(l.toLowerCase().startsWith(CMD_MAP[i].startsWith.toLowerCase())){
+        return CMD_MAP[i].cmd;
+      }
+    }
+    return null;
+  }
+
+  function openCmd(cmd){
+    if(!portalUrl) return;
+    var url = portalUrl + "&CMD=" + encodeURIComponent(cmd);
+    window.open(url, "_blank");
+  }
+
+  if(Array.isArray(data.OptionsWeb) && data.OptionsWeb.length){
+    data.OptionsWeb.forEach(function(o){
+      var lib = (o && (o.Libelle ?? o.libelle)) ?? "";
+      var val = (o && (o.Valeur ?? o.valeur)) ?? "";
+
+      var isFalse = (val === false || val === "false" || val === 0 || val === "0");
+      var cmd = resolveCmd(lib);
+
+      if(cmd && !isFalse && portalUrl){
+        badges.insertAdjacentHTML(
+          "beforeend",
+          "<button type='button' class='badge-btn on' data-cmd='"+escapeHtml(cmd)+"' " +
+          "title='Ouvrir : "+escapeHtml(portalUrl)+"&CMD="+escapeHtml(cmd)+"'>" +
+          escapeHtml(String(lib).trim()) +
+          "</button>"
+        );
+      } else {
+        badges.insertAdjacentHTML(
+          "beforeend",
+          "<button type='button' class='badge-btn off' disabled " +
+          "title='Non disponible (non mappée, désactivée, ou URL Portail indisponible)'>" +
+          escapeHtml(String(lib || "Option").trim()) +
+          "</button>"
+        );
+      }
+    });
+
+    // délégation clic
+    badges.onclick = function(ev){
+      var btn = ev.target && ev.target.closest ? ev.target.closest("button[data-cmd]") : null;
+      if(!btn) return;
+      var cmd = btn.getAttribute("data-cmd");
+      if(cmd) openCmd(cmd);
+    };
+
+  } else {
+    badges.insertAdjacentHTML("beforeend","<span class='hint'>Aucune option</span>");
+  }
+
+  formatted.classList.remove("hidden");
+  dossierSwitcher.classList.remove("hidden");
+  fetchInfosDossier();
+  fetchComptaDossier();
+}
+
+
+function resetDossierStatus(){
+  var el = document.getElementById("dossierStatus");
+  el.textContent = "";
+  el.className = "form-status";
+}
+
+function setDossierStatus(msg, ok){
+  var el = document.getElementById("dossierStatus");
+  el.textContent = msg || "";
+  el.className = "form-status " + (ok ? "ok" : "err");
+}
+
+function changeDossier(){
+  var ctx = getContext();
+  var codeDossier = (document.getElementById("codeDossier").value || "").trim();
+  var title = document.getElementById("resultTitle");
+
+  resetDossierStatus();
+
+  if(!ctx.apiUrl){
+    setDossierStatus("URL API non disponible", false);
+    return;
+  }
+  if(!(lastValidUuid || ctx.uuid)){
+    setDossierStatus("Connexion SSO non valide", false);
+    return;
+  }
+  if(!codeDossier){
+    setDossierStatus("Saisir un CodeDossier", false);
+    return;
+  }
+
+  var uuidHeader = lastValidUuid || ctx.uuid;
+  var headers = {
+    "accept":"text/plain",
+    "UUID": uuidHeader,
+    "Content-Type":"application/json-patch+json"
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  fetch(normalize(ctx.apiUrl) + "/v2/sessions/dossier",{
+    method:"POST",
+    headers: headers,
+    body: JSON.stringify(codeDossier)
+  })
+  .then(function(r){
+    return r.text().then(function(t){
+      return {ok:r.ok,status:r.status,text:t};
+    });
+  })
+  .then(function(res){
+    setRawResult(res.text);
+
+    if(!res.ok){
+      title.innerHTML = "<span class='err'>Erreur HTTP " + res.status + "</span>";
+      setSsoUiState(false);
+      resetInfosDossier();
+      resetComptaDossier();
+      setDossierStatus("Changement de dossier refusé", false);
+      return;
+    }
+
+    title.innerHTML = "";
+    setSsoUiState(true);
+    setDossierStatus("Dossier courant changé : " + codeDossier, true);
+
+    try{
+      var parsed = JSON.parse(res.text);
+      lastSsoPayload = parsed;
+      if(parsed && parsed.UUID){
+        lastValidUuid = parsed.UUID;
+      }
+      renderSsoResult(parsed);
+    }catch(e){
+      document.getElementById("resultFormatted").classList.add("hidden");
+      resetInfosDossier();
+      resetComptaDossier();
+    }
+  })
+  .catch(function(e){
+    title.innerHTML = "<span class='err'>Erreur réseau / CORS</span>";
+    setSsoUiState(false);
+    setRawResult(e.message);
+    setDossierStatus("Erreur réseau / CORS", false);
+    resetInfosDossier();
+    document.getElementById("resultFormatted").classList.add("hidden");
+  });
+}
+
+
+/* =========================================================
+   Edition du dossier courant
+   ========================================================= */
+var currentSessionDossierData = null;
+var currentEditableDossier = null;
+var folderEditorInitialValues = null;
+var folderEditorApiReferences = { cabinets:[], genres:[], titres:[], loaded:false };
+var FOLDER_EDITOR_STATIC_REFERENCES = {"RegimeFiscal": [{"code": "RN", "label": "Réel Normal"}, {"code": "RS", "label": "Réel Simplifié"}, {"code": "SS", "label": "Super Simplifié"}], "RegimeImposition": [{"code": "IR", "label": "Revenus"}, {"code": "IS", "label": "Société"}], "RegimeTva": [{"code": "EM", "label": "Réel Normal mensuel"}, {"code": "ET", "label": "Réel Normal trimestriel"}, {"code": "RM", "label": "Mini Réel mensuel"}, {"code": "RT", "label": "Mini Réel trimestriel"}, {"code": "EO", "label": "Réel Normal - BNC allégé"}, {"code": "ES", "label": "Réel Normal - Saisonnier"}, {"code": "RS", "label": "Mini Réel - Saisonnier"}, {"code": "AM", "label": "Réel Normal - Acomptes provisionnels mensuels"}, {"code": "ST", "label": "RSI - Régime simplifié imposition"}, {"code": "AST", "label": "Régime Simplifié Agricole - Acomptes trimestriels"}, {"code": "AET", "label": "Régime Simplifié Agricole - Déclarations trimestrielles"}, {"code": "ADT", "label": "Régime Simplifié Agricole - Régime de la franchise"}, {"code": "NI", "label": "Non Imposable"}, {"code": "RFA", "label": "Remboursement Forfaitaire Agricole"}, {"code": "RFB", "label": "Régime de la Franchise en Base"}], "TypeRegimeFiscal": [{"code": "AGR", "label": "AGRICOLE"}, {"code": "ASS", "label": "ASSOCIATION"}, {"code": "AES", "label": "ASSOCIATION ESMS"}, {"code": "BIC", "label": "BENEFICES INDUSTRIELS & COMMERCIAUX"}, {"code": "BNA", "label": "BENEFICES NON COMMERCIAUX (plan 57)"}, {"code": "BNC", "label": "BENEFICES NON COMMERCIAUX (plan 82)"}, {"code": "CE", "label": "COMITE SOCIAL ET ECONOMIQUE"}, {"code": "SCI", "label": "REVENUS FONCIERS"}, {"code": "SCM", "label": "SOCIETE CIVILE DE MOYEN"}, {"code": "NOT", "label": "NOTAIRE"}], "CodeFormeJuridique": [{"code": "0001", "label": "Cabinet"}, {"code": "0002", "label": "Compagnie"}, {"code": "0003", "label": "Entreprise collective"}, {"code": "0004", "label": "Entreprise individuelle à responsabilité limitée"}, {"code": "0005", "label": "Entreprise"}, {"code": "0006", "label": "Etablissement"}, {"code": "0007", "label": "Entreprise unipersonnelle à responsabilité limitée"}, {"code": "0008", "label": "Fédération"}, {"code": "0009", "label": "Indivision"}, {"code": "0010", "label": "Monsieur"}, {"code": "0011", "label": "Maître"}, {"code": "0012", "label": "Mademoiselle"}, {"code": "0013", "label": "Madame"}, {"code": "0014", "label": "Société anonyme"}, {"code": "0015", "label": "Société anonyme d'exploitation"}, {"code": "0016", "label": "Syndical agricole"}, {"code": "0017", "label": "Société civile d'exploitation"}, {"code": "0018", "label": "Société civile d'exploitation vinicole"}, {"code": "0019", "label": "Société civile Holding"}, {"code": "0020", "label": "Société civile participation gestion"}, {"code": "0021", "label": "Société de droit étranger"}, {"code": "0022", "label": "Société d'exploitation libérale à forme anonyme"}, {"code": "0023", "label": "Société d'exploitation libérale unipersonnel à responsabilité limitée"}, {"code": "0024", "label": "Société"}, {"code": "0025", "label": "Société en participation"}, {"code": "0026", "label": "Société civile de vente volontaire"}, {"code": "0027", "label": "Territoire d'outre-mer"}, {"code": "0028", "label": "Autres"}, {"code": "1000", "label": "Entrepreneur individuel"}, {"code": "2110", "label": "Indivision entre personnes physiques"}, {"code": "2120", "label": "Indivision avec personne morale"}, {"code": "2210", "label": "Sté créée de fait entre personnes physiques"}, {"code": "2220", "label": "Sté créée de fait avec personne morale"}, {"code": "2310", "label": "Sté en participation entre personnes physiques"}, {"code": "2320", "label": "Sté en participation avec personne morale"}, {"code": "2385", "label": "Sté en participation de professions libérales"}, {"code": "2400", "label": "Fiducie"}, {"code": "2700", "label": "Paroisse hors zone concordataire"}, {"code": "2900", "label": "Autre groupement de droit privé non doté de la personnalité morale"}, {"code": "3110", "label": "Représentation ou agence ciale d'état ou org. public étranger immat. au RCS"}, {"code": "3120", "label": "Sté commerciale étrangère immatriculée au RCS"}, {"code": "3205", "label": "Organisation internationale"}, {"code": "3210", "label": "Etat, collectivité ou Etablissement public étranger"}, {"code": "3220", "label": "Sté étrangère non immatriculée au RCS"}, {"code": "3290", "label": "Autre personne morale de droit étranger"}, {"code": "4110", "label": "Etablissement EPIC doté d'un comptable public"}, {"code": "4120", "label": "Etablissement EPIC non doté d'un comptable public"}, {"code": "4130", "label": "Exploitant public"}, {"code": "4140", "label": "Etablissement public local à caractère industriel ou commercial"}, {"code": "4150", "label": "Régie d'une collectivité locale à caractère industriel ou commercial"}, {"code": "4160", "label": "Institution Banque de France"}, {"code": "5191", "label": "Sté de caution mutuelle"}, {"code": "5192", "label": "Sté coopérative de banque populaire"}, {"code": "5193", "label": "Caisse de crédit maritime mutuel"}, {"code": "5194", "label": "Caisse (fédérale) de crédit mutuel"}, {"code": "5195", "label": "Association coopérative inscrite (droit local Alsace Moselle)"}, {"code": "5196", "label": "Caisse d'épargne et de prévoyance à forme coopérative"}, {"code": "5202", "label": "Sté en nom collectif"}, {"code": "5203", "label": "Sté en nom collectif coopérative"}, {"code": "5306", "label": "Sté en commandite simple"}, {"code": "5307", "label": "Sté en commandite simple coopérative"}, {"code": "5308", "label": "Sté en commandite par actions"}, {"code": "5309", "label": "Sté en commandite par actions coopérative"}, {"code": "5370", "label": "Sté de Participations Financières de Prof. Libérale (SPFPL SCA)"}, {"code": "5385", "label": "Sté d'exercice libéral en commandite par actions"}, {"code": "5410", "label": "SARL nationale"}, {"code": "5415", "label": "SARL d'économie mixte"}, {"code": "5422", "label": "SARL immobilière pour le commerce et l'industrie (SICOMI)"}, {"code": "5426", "label": "SARL immobilière de gestion"}, {"code": "5430", "label": "SARL d'aménagement foncier et d'équipement rural (SAFER)"}, {"code": "5431", "label": "SARL mixte d'intérêt agricole (SMIA)"}, {"code": "5432", "label": "SARL d'intérêt collectif agricole (SICA)"}, {"code": "5442", "label": "SARL d'attribution"}, {"code": "5443", "label": "SARL coopérative de construction"}, {"code": "5451", "label": "SARL coopérative de consommation"}, {"code": "5453", "label": "SARL coopérative artisanale"}, {"code": "5454", "label": "SARL coopérative d'intérêt maritime"}, {"code": "5455", "label": "SARL coopérative de transport"}, {"code": "5458", "label": "SARL coopérative ouvrière de production (SCOP)"}, {"code": "5459", "label": "SARL union de sociétés coopératives"}, {"code": "5460", "label": "Autre SARL coopérative"}, {"code": "5470", "label": "Sté de Participations Financières de Prof. Libérale (SPFPL SARL)"}, {"code": "5485", "label": "Sté d'exercice libéral à responsabilité limitée"}, {"code": "5498", "label": "SARL unipersonnelle"}, {"code": "5499", "label": "Sté à responsabilité limitée (sans autre indication) (SARL)"}, {"code": "5505", "label": "SA à participation ouvrière à conseil d'administration"}, {"code": "5510", "label": "SA nationale à conseil d'administration"}, {"code": "5515", "label": "SA d'économie mixte à conseil d'administration"}, {"code": "5520", "label": "Fonds à forme sociétale à conseil d'administration"}, {"code": "5522", "label": "SA immobilière pour le com. et l'indus. (SICOMI) à conseil d'administration"}, {"code": "5525", "label": "SA immobilière d'investissement à conseil d'administration"}, {"code": "5530", "label": "SA d'amgt foncier et d'éqt rural (SAFER) à conseil d'administration"}, {"code": "5531", "label": "Sté anonyme mixte d'intérêt agricole (SMIA) à conseil d'administration"}, {"code": "5532", "label": "SA d'intérêt collectif agricole (SICA) à conseil d'administration"}, {"code": "5542", "label": "SA d'attribution à conseil d'administration"}, {"code": "5543", "label": "SA coopérative de construction à conseil d'administration"}, {"code": "5546", "label": "SA de HLM à conseil d'administration"}, {"code": "5547", "label": "SA coopérative de production de HLM à conseil d'administration"}, {"code": "5548", "label": "SA de crédit immobilier à conseil d'administration"}, {"code": "5551", "label": "SA coopérative de consommation à conseil d'administration"}, {"code": "5552", "label": "SA coopérative de commerçants-détaillants à conseil d'administration"}, {"code": "5553", "label": "SA coopérative artisanale à conseil d'administration"}, {"code": "5554", "label": "SA coopérative (d'intérêt) maritime à conseil d'administration"}, {"code": "5555", "label": "SA coopérative de transport à conseil d'administration"}, {"code": "5558", "label": "SA coopérative ouvrière de production (SCOP) à conseil d'administration"}, {"code": "5559", "label": "SA union de Stés coopératives à conseil d'administration"}, {"code": "5560", "label": "Autre SA coopérative à conseil d'administration"}, {"code": "5570", "label": "Sté de Participations Financières de Prof. Libérale (SPFPL SA à conseil d'adm)"}, {"code": "5585", "label": "Sté d'exercice libéral à forme anonyme à conseil d'administration"}, {"code": "5599", "label": "SA à conseil d'administration (s.a.i.)"}, {"code": "5605", "label": "SA à participation ouvrière à directoire"}, {"code": "5610", "label": "SA nationale à directoire"}, {"code": "5615", "label": "SA d'économie mixte à directoire"}, {"code": "5620", "label": "Fonds à forme sociétale à directoire"}, {"code": "5622", "label": "SA immobilière pour le commerce et l'industrie (SICOMI) à directoire"}, {"code": "5625", "label": "SA immobilière d'investissement à directoire"}, {"code": "5630", "label": "Safer anonyme à directoire"}, {"code": "5631", "label": "SA mixte d'intérêt agricole (SMIA)"}, {"code": "5632", "label": "SA d'intérêt collectif agricole (SICA)"}, {"code": "5642", "label": "SA d'attribution à directoire"}, {"code": "5643", "label": "SA coopérative de construction à directoire"}, {"code": "5646", "label": "SA de HLM à directoire"}, {"code": "5647", "label": "Sté coopérative de production de HLM anonyme à directoire"}, {"code": "5648", "label": "SA de crédit immobilier à directoire"}, {"code": "5651", "label": "SA coopérative de consommation à directoire"}, {"code": "5652", "label": "SA coopérative de commerçants-détaillants à directoire"}, {"code": "5653", "label": "SA coopérative artisanale à directoire"}, {"code": "5654", "label": "SA coopérative d'intérêt maritime à directoire"}, {"code": "5655", "label": "SA coopérative de transport à directoire"}, {"code": "5658", "label": "SA coopérative ouvrière de production (SCOP) à directoire"}, {"code": "5659", "label": "SA union de Stés coopératives à directoire"}, {"code": "5660", "label": "Autre SA coopérative à directoire"}, {"code": "5670", "label": "Sté de Participations Financières de Prof. Libérale (SPFPL SA à directoire)"}, {"code": "5685", "label": "Sté d'exercice libéral à forme anonyme à directoire"}, {"code": "5699", "label": "SA à directoire (s.a.i.)"}, {"code": "5710", "label": "SAS, Sté par actions simplifiée"}, {"code": "5720", "label": "Sté par actions simplifiée à associé unique ou SAS unipersonnelle"}, {"code": "5770", "label": "Sté de Participations Financières de Prof. Libérale (SPFPL SAS)"}, {"code": "5785", "label": "Sté d'exercice libéral par action simplifiée"}, {"code": "5800", "label": "Sté européenne"}, {"code": "6100", "label": "Caisse d'Épargne et de Prévoyance"}, {"code": "6210", "label": "Groupement européen d'intérêt économique (GEIE)"}, {"code": "6220", "label": "Groupement d'intérêt économique (GIE)"}, {"code": "6316", "label": "Coopérative d'utilisation de matériel agricole en commun (CUMA)"}, {"code": "6317", "label": "Sté coopérative agricole"}, {"code": "6318", "label": "Union de Stés coopératives agricoles"}, {"code": "6411", "label": "Sté d'assurance à forme mutuelle"}, {"code": "6511", "label": "Sociétés Interprofessionnelles de Soins Ambulatoires"}, {"code": "6521", "label": "Sté civile de placement collectif immobilier (SCPI)"}, {"code": "6532", "label": "Sté civile d'intérêt collectif agricole (SICA)"}, {"code": "6533", "label": "Groupement agricole d'exploitation en commun (GAEC)"}, {"code": "6534", "label": "Groupement foncier agricole"}, {"code": "6535", "label": "Groupement agricole foncier"}, {"code": "6536", "label": "Groupement forestier"}, {"code": "6537", "label": "Groupement pastoral"}, {"code": "6538", "label": "Groupement foncier et rural"}, {"code": "6539", "label": "Sté civile foncière"}, {"code": "6540", "label": "Sté civile immobilière"}, {"code": "6541", "label": "Sté civile immobilière de construction-vente"}, {"code": "6542", "label": "Sté civile d'attribution"}, {"code": "6543", "label": "Sté civile coopérative de construction"}, {"code": "6544", "label": "Sté civile immobilière d' accession progressive à la propriété"}, {"code": "6551", "label": "Sté civile coopérative de consommation"}, {"code": "6554", "label": "Sté civile coopérative d'intérêt maritime"}, {"code": "6558", "label": "Sté civile coopérative entre médecins"}, {"code": "6560", "label": "Autre Sté civile coopérative"}, {"code": "6561", "label": "SCP d'avocats"}, {"code": "6562", "label": "SCP d'avocats aux conseils"}, {"code": "6563", "label": "SCP d'avoués d'appel"}, {"code": "6564", "label": "SCP d'huissiers"}, {"code": "6565", "label": "SCP de notaires"}, {"code": "6566", "label": "SCP de commissaires-priseurs"}, {"code": "6567", "label": "SCP de greffiers de tribunal de commerce"}, {"code": "6568", "label": "SCP de conseils juridiques"}, {"code": "6569", "label": "SCP de commissaires aux comptes"}, {"code": "6571", "label": "SCP de médecins"}, {"code": "6572", "label": "SCP de dentistes"}, {"code": "6573", "label": "SCP d'infirmiers"}, {"code": "6574", "label": "SCP de masseurs-kinésithérapeutes"}, {"code": "6575", "label": "SCP de directeurs de laboratoire d'analyse médicale"}, {"code": "6576", "label": "SCP de vétérinaires"}, {"code": "6577", "label": "SCP de géomètres experts"}, {"code": "6578", "label": "SCP d'architectes"}, {"code": "6585", "label": "Autre société civile professionnelle"}, {"code": "6588", "label": "Sté civile laitière"}, {"code": "6589", "label": "Sté civile de moyens"}, {"code": "6595", "label": "Caisse locale de crédit mutuel"}, {"code": "6596", "label": "Caisse de crédit agricole mutuel"}, {"code": "6597", "label": "Sté civile d'exploitation agricole"}, {"code": "6598", "label": "Exploitation agricole à responsabilité limitée"}, {"code": "6599", "label": "Autre Sté civile"}, {"code": "6901", "label": "Autre personne de droit privé inscrite au RCS"}, {"code": "7111", "label": "Autorité constitutionnelle"}, {"code": "7112", "label": "Autorité administrative ou publique indépendante"}, {"code": "7113", "label": "Ministère"}, {"code": "7120", "label": "Service central d'un ministère"}, {"code": "7150", "label": "Service du ministère de la Défense"}, {"code": "7160", "label": "Service déconcentré à compétence nationale d'un ministère (hors Défense)"}, {"code": "7171", "label": "Service déconcentré de l'Etat à compétence (inter) régionale"}, {"code": "7172", "label": "Service déconcentré de l'Etat à compétence (inter) départementale"}, {"code": "7179", "label": "(Autre) Service déconcentré de l'Etat à compétence territoriale"}, {"code": "7190", "label": "Ecole nationale non dotée de la personnalité morale"}, {"code": "7210", "label": "Commune et commune nouvelle"}, {"code": "7220", "label": "Département"}, {"code": "7225", "label": "Collectivité et territoire d'Outre Mer"}, {"code": "7229", "label": "(Autre) Collectivité territoriale"}, {"code": "7230", "label": "Région"}, {"code": "7312", "label": "Commune associée et commune déléguée"}, {"code": "7313", "label": "Section de commune"}, {"code": "7314", "label": "Ensemble urbain"}, {"code": "7321", "label": "Association syndicale autorisée"}, {"code": "7322", "label": "Association foncière urbaine"}, {"code": "7323", "label": "Association foncière de remembrement"}, {"code": "7331", "label": "Établissement public local d'enseignement"}, {"code": "7340", "label": "Pôle métropolitain"}, {"code": "7341", "label": "Secteur de commune"}, {"code": "7342", "label": "District urbain"}, {"code": "7343", "label": "Communauté urbaine"}, {"code": "7344", "label": "Métropole"}, {"code": "7345", "label": "Syndicat intercommunal à vocation multiple (SIVOM)"}, {"code": "7346", "label": "Communauté de communes"}, {"code": "7347", "label": "Communauté de villes"}, {"code": "7348", "label": "Communauté d'agglomération"}, {"code": "7349", "label": "Autre établissement public local de coopération non spécialisé ou entente"}, {"code": "7351", "label": "Institution interdépartementale ou entente"}, {"code": "7352", "label": "Institution interrégionale ou entente"}, {"code": "7353", "label": "Syndicat intercommunal à vocation unique (SIVU)"}, {"code": "7354", "label": "Syndicat mixte fermé"}, {"code": "7355", "label": "Syndicat mixte ouvert"}, {"code": "7356", "label": "Commission syndicale pour la gestion des biens indivis des communes"}, {"code": "7357", "label": "Pôle d'équilibre territorial et rural (PETR)"}, {"code": "7361", "label": "Centre communal d'action sociale"}, {"code": "7362", "label": "Caisse des écoles"}, {"code": "7363", "label": "Caisse de crédit municipal"}, {"code": "7364", "label": "Etablissement d'hospitalisation"}, {"code": "7365", "label": "Syndicat inter hospitalier"}, {"code": "7366", "label": "Etablissement public local social et médico-social"}, {"code": "7367", "label": "Centre Intercommunal d'action sociale (CIAS)"}, {"code": "7371", "label": "Office public d'habitation à loyer modéré (OPHLM)"}, {"code": "7372", "label": "Service départemental d'incendie et de secours (SDIS)"}, {"code": "7373", "label": "Etablissement public local culturel"}, {"code": "7378", "label": "Régie d'une collectivité locale à caractère administratif"}, {"code": "7379", "label": "(Autre) Établissement public administratif local"}, {"code": "7381", "label": "Organisme consulaire"}, {"code": "7382", "label": "Etablissement public national ayant fonction d'administration centrale"}, {"code": "7383", "label": "Etablissement public national à caractère scientifique culturel et prof."}, {"code": "7384", "label": "Autre établissement public national d'enseignement"}, {"code": "7385", "label": "Autre établissement public national admtif à compétence territoriale limitée"}, {"code": "7389", "label": "Etablissement public national à caractère administratif"}, {"code": "7410", "label": "Groupement d'intérêt public (GIP)"}, {"code": "7430", "label": "Etablissement public des cultes d'Alsace-Lorraine"}, {"code": "7450", "label": "Etablissement public administratif, cercle et foyer dans les armées"}, {"code": "7470", "label": "Groupement de coopération sanitaire à gestion publique"}, {"code": "7490", "label": "Autre personne morale de droit administratif"}, {"code": "8110", "label": "Régime général de la Sécurité Sociale"}, {"code": "8120", "label": "Régime spécial de Sécurité Sociale"}, {"code": "8130", "label": "Institution de retraite complémentaire"}, {"code": "8140", "label": "Mutualité sociale agricole"}, {"code": "8150", "label": "Régime maladie des non-salariés non agricoles"}, {"code": "8160", "label": "Régime vieillesse ne dépendant pas du régime général de la Sécurité Sociale"}, {"code": "8170", "label": "Régime d'assurance chômage"}, {"code": "8190", "label": "Autre régime de prévoyance sociale"}, {"code": "8210", "label": "Mutuelle"}, {"code": "8250", "label": "Assurance mutuelle agricole"}, {"code": "8290", "label": "Autre organisme mutualiste"}, {"code": "8310", "label": "Comité central d'entreprise"}, {"code": "8311", "label": "Comité d'établissement"}, {"code": "8410", "label": "Syndicat de salariés"}, {"code": "8420", "label": "Syndicat patronal"}, {"code": "8450", "label": "Ordre professionnel ou assimilé"}, {"code": "8470", "label": "Centre technique industriel ou comité professionnel du dvpt économique"}, {"code": "8490", "label": "Autre organisme professionnel"}, {"code": "8510", "label": "Institution de prévoyance"}, {"code": "8520", "label": "Institution de retraite supplémentaire"}, {"code": "9110", "label": "Syndicat de copropriété"}, {"code": "9150", "label": "Association syndicale libre"}, {"code": "9210", "label": "Association non déclarée"}, {"code": "9220", "label": "Association déclarée"}, {"code": "9221", "label": "Association déclarée d'insertion par l'économique"}, {"code": "9222", "label": "Association intermédiaire"}, {"code": "9223", "label": "Groupement d'employeurs"}, {"code": "9224", "label": "Association d'avocats à responsabilité professionnelle individuelle"}, {"code": "9230", "label": "Association déclarée, reconnue d'utilité publique"}, {"code": "9240", "label": "Congrégation"}, {"code": "9260", "label": "Association de droit local (Bas-Rhin, Haut-Rhin et Moselle)"}, {"code": "9300", "label": "Fondation"}, {"code": "9900", "label": "Autre personne morale de droit privé"}, {"code": "9970", "label": "Groupement de coopération sanitaire à gestion privée"}]};
+
+var folderEditorModal = document.getElementById("folderEditorModal");
+var folderEditorDialog = document.getElementById("folderEditorDialog");
+var folderEditorForm = document.getElementById("folderEditorForm");
+var folderEditorError = document.getElementById("folderEditorError");
+var folderEditorSuccess = document.getElementById("folderEditorSuccess");
+var folderEditorSaveButton = document.getElementById("folderEditorSaveButton");
+var folderEditorCancelButton = document.getElementById("folderEditorCancelButton");
+var folderEditorCloseButton = document.getElementById("folderEditorCloseButton");
+var folderEditorFullscreenButton = document.getElementById("folderEditorFullscreenButton");
+
+var FOLDER_EDITOR_READ_ONLY = { Code:true, CodeCompta:true };
+var FOLDER_EDITOR_STRING_YES_NO = { Tenue:true, DepenseRecette:true, IntegrationFiscale:true };
+var FOLDER_EDITOR_LABELS = {
+  Morale:"Personne morale",
+  CodeTitre:"Titre",
+  Nom:"Nom",
+  Code:"Code",
+  CodeGenre:"Genre",
+  LibelleActiviteForce:"Activité",
+  CodeSociete:"Cabinet",
+  Adresse1:"Adr. L1",
+  CodePostal:"Code Postal",
+  Ville:"Ville",
+  Email:"Email",
+  CodeFormeJuridique:"Forme juridique",
+  SIRET:"N° SIRET",
+  CodeNAF:"NAF",
+  NombrePart:"Nombre de parts",
+  CodeCompta:"Code compta",
+  Tenue:"Tenue",
+  DepenseRecette:"Dépenses / Recettes",
+  TypeRegimeFiscal:"Type Dossier",
+  RegimeFiscal:"Régime Fiscal",
+  RegimeImposition:"Imposition",
+  RegimeTva:"Régime TVA",
+  NumeroTVAIntracom:"N° TVA Intracomm.",
+  IntegrationFiscale:"Intégration fiscale",
+  DateEntree:"Entrée",
+  NumeroCompteTiers:"N° compte tiers"
+};
+
+var FOLDER_EDITOR_SECTIONS = [
+  {
+    title:"Général",
+    groups:[
+      {title:"Informations générales",fullWidth:true,keys:["Morale","CodeTitre","Nom","Code","CodeGenre","LibelleActiviteForce","CodeSociete"]},
+      {title:"Coordonnées",fullWidth:true,keys:["Adresse1","CodePostal","Ville","Email"]}
+    ]
+  },
+  {
+    title:"Fiscal",
+    groups:[
+      {title:"Juridique",area:"juridique",keys:["CodeFormeJuridique","SIRET","CodeNAF","NombrePart"]},
+      {title:"Fiscalité",area:"fiscalite",keys:["TypeRegimeFiscal","RegimeFiscal","RegimeImposition","RegimeTva","NumeroTVAIntracom","IntegrationFiscale"]},
+      {title:"Comptabilité",area:"comptabilite",keys:["CodeCompta","Tenue","DepenseRecette"]}
+    ]
+  },
+  {
+    title:"Divers",
+    groups:[
+      {title:"Entrée / sortie cabinet",fullWidth:true,keys:["DateEntree"]},
+      {title:"Informations diverses",fullWidth:true,keys:["NumeroCompteTiers"]}
+    ]
+  }
+];
+
+function editorCode(value){
+  if(value && typeof value === "object"){
+    return String(value.Code ?? value.code ?? value.Valeur ?? value.valeur ?? "");
+  }
+  return value == null ? "" : String(value);
+}
+function editorText(value){ return value == null ? "" : String(value); }
+function editorDate(value){
+  var s = editorText(value).trim();
+  var m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : s;
+}
+function editorYesNo(value){
+  if(value === true || value === 1 || value === "1" || String(value).toUpperCase() === "O" || String(value).toUpperCase() === "OUI") return "OUI";
+  if(value === false || value === 0 || value === "0" || String(value).toUpperCase() === "N" || String(value).toUpperCase() === "NON") return "NON";
+  return editorText(value);
+}
+function firstDefined(){
+  for(var i=0;i<arguments.length;i++){
+    if(arguments[i] !== undefined && arguments[i] !== null) return arguments[i];
+  }
+  return "";
+}
+
+function normalizeDossierForEditor(data){
+  data = data || {};
+  var titre = data.Titre || data.titre || {};
+  var genre = data.Genre || data.genre || {};
+  var societe = data.Societe || data.societe || {};
+  var activite = data.Activite || data.activite || {};
+  var forme = data.FormeJuridique || data.formeJuridique || {};
+  var moraleValue = firstDefined(data.Morale, data.PersonneMorale, titre.PersonneMorale);
+  var morale = moraleValue === true || moraleValue === 1 || String(moraleValue).toLowerCase() === "true" || String(moraleValue).toUpperCase() === "OUI";
+
+  return {
+    Code: editorText(firstDefined(data.Code, data.code)),
+    Morale: morale,
+    NombrePart: Number(firstDefined(data.NombrePart, data.NombreDePart, 0)) || 0,
+    Nom: editorText(firstDefined(data.Nom, data.nom)),
+    CodeSociete: editorCode(firstDefined(data.CodeSociete, societe)),
+    CodeGenre: editorCode(firstDefined(data.CodeGenre, genre)),
+    CodeTitre: editorCode(firstDefined(data.CodeTitre, titre)),
+    LibelleActiviteForce: editorText(firstDefined(data.LibelleActiviteForce, activite.Libelle, activite.libelle)),
+    CodeNAF: editorText(firstDefined(data.CodeNAF, data.CodeNaf, data.NAF)),
+    CodeCompta: editorText(firstDefined(data.CodeCompta, data.codeCompta, data.Code)),
+    NumeroCompteTiers: editorText(firstDefined(data.NumeroCompteTiers, data.CompteTiers)),
+    Adresse1: editorText(firstDefined(data.Adresse1, data.adresse1)),
+    Ville: editorText(firstDefined(data.Ville, data.ville)),
+    CodePostal: editorText(firstDefined(data.CodePostal, data.codePostal)),
+    Email: editorText(firstDefined(data.Email, data.email)),
+    SIRET: editorText(firstDefined(data.SIRET, data.Siret, data.siret)),
+    NumeroTVAIntracom: editorText(firstDefined(data.NumeroTVAIntracom, data.NumeroTvaIntracom)),
+    DateEntree: editorDate(firstDefined(data.DateEntree, data.dateEntree)),
+    RegimeTva: editorCode(firstDefined(data.RegimeTva, data.RegimeTVA)),
+    CodeFormeJuridique: editorCode(firstDefined(data.CodeFormeJuridique, forme)),
+    Tenue: editorYesNo(firstDefined(data.Tenue, "NON")),
+    RegimeFiscal: editorCode(firstDefined(data.RegimeFiscal, "")),
+    TypeRegimeFiscal: editorCode(firstDefined(data.TypeRegimeFiscal, data.TypeDossier, "")),
+    DepenseRecette: editorYesNo(firstDefined(data.DepenseRecette, "NON")),
+    IntegrationFiscale: editorYesNo(firstDefined(data.IntegrationFiscale, "NON")),
+    RegimeImposition: editorCode(firstDefined(data.RegimeImposition, data.Imposition, ""))
+  };
+}
+
+function dossierApiHeaders(contentType){
+  var ctx = getContext();
+  var currentUuid = lastValidUuid || ctx.uuid;
+  var headers = {"Accept":"text/plain, application/json, */*","UUID":currentUuid};
+  if(contentType) headers["Content-Type"] = contentType;
+  if(ctx.sendXClientIp && ctx.xClientIp) headers["X-CLIENT-IP"] = ctx.xClientIp;
+  return headers;
+}
+
+function isDossierModificationAllowed(){
+  var select = document.getElementById("allowDossierModification");
+  return !!select && select.value === "oui";
+}
+
+function updateEditDossierButtonVisibility(){
+  var btn = document.getElementById("btnEditDossier");
+  if(!btn) return;
+  var hasEditableDossier = !!(currentEditableDossier && editorText(currentEditableDossier.Code).trim());
+  btn.classList.toggle("hidden", !(isDossierModificationAllowed() && hasEditableDossier));
+}
+
+function loadEditableDossierData(sessionData){
+  var ctx = getContext();
+  var code = editorText(sessionData && sessionData.Code).trim();
+
+  currentSessionDossierData = sessionData || null;
+  currentEditableDossier = normalizeDossierForEditor(sessionData || {});
+  updateEditDossierButtonVisibility();
+
+  if(!ctx.apiUrl || !(lastValidUuid || ctx.uuid) || !code){
+    return Promise.resolve(currentEditableDossier);
+  }
+
+  return fetch(normalize(ctx.apiUrl) + "/v1/dossiers/" + encodeURIComponent(code), {
+    method:"GET",
+    headers:dossierApiHeaders()
+  })
+  .then(function(r){ return r.text().then(function(t){ return {ok:r.ok,status:r.status,text:t}; }); })
+  .then(function(res){
+    if(!res.ok) return currentEditableDossier;
+    try{
+      var full = JSON.parse(res.text);
+      currentEditableDossier = normalizeDossierForEditor(full);
+      if(!currentEditableDossier.CodeCompta){
+        currentEditableDossier.CodeCompta = editorText(sessionData && (sessionData.CodeCompta || sessionData.Code));
+      }
+      updateEditDossierButtonVisibility();
+    }catch(e){}
+    return currentEditableDossier;
+  })
+  .catch(function(){ return currentEditableDossier; });
+}
+
+function normalizeReferenceItems(data){
+  if(!Array.isArray(data)) return [];
+  return data.map(function(item){
+    item = item || {};
+    var code = editorText(firstDefined(item.Code,item.code)).trim();
+    var label = editorText(firstDefined(item.LibelleLong,item.Libelle,item.libelleLong,item.libelle,item.Nom,item.nom)).trim();
+    return {
+      code:code,
+      label:label,
+      personneMorale:item.PersonneMorale === true,
+      personnePhysique:item.PersonnePhysique === true
+    };
+  }).filter(function(item){ return item.code; });
+}
+
+function loadFolderEditorReferences(){
+  if(folderEditorApiReferences.loaded) return Promise.resolve(folderEditorApiReferences);
+  return Promise.all([
+    apiGetJson("/v1/cabinets").catch(function(){ return []; }),
+    apiGetJson("/v1/genres").catch(function(){ return []; }),
+    apiGetJson("/v1/titres").catch(function(){ return []; })
+  ]).then(function(values){
+    folderEditorApiReferences.cabinets = normalizeReferenceItems(values[0]);
+    folderEditorApiReferences.genres = normalizeReferenceItems(values[1]);
+    folderEditorApiReferences.titres = normalizeReferenceItems(values[2]);
+    folderEditorApiReferences.loaded = true;
+    return folderEditorApiReferences;
+  });
+}
+
+function staticReferenceItems(key){
+  return Array.isArray(FOLDER_EDITOR_STATIC_REFERENCES[key]) ? FOLDER_EDITOR_STATIC_REFERENCES[key] : null;
+}
+function currentMoraleValue(){
+  var el = folderEditorForm.querySelector('[data-folder-field="Morale"]');
+  if(el) return el.value === "true";
+  return !!(currentEditableDossier && currentEditableDossier.Morale);
+}
+function apiReferenceItems(key){
+  if(key === "CodeSociete") return folderEditorApiReferences.cabinets;
+  if(key === "CodeGenre") return folderEditorApiReferences.genres;
+  if(key === "CodeTitre"){
+    var morale = currentMoraleValue();
+    return folderEditorApiReferences.titres.filter(function(item){
+      return morale ? item.personneMorale : item.personnePhysique;
+    });
+  }
+  return null;
+}
+
+function buildReferenceSelect(value, items, unavailableLabel){
+  var select = document.createElement("select");
+  var current = editorText(value).trim();
+  var hasCurrent = false;
+
+  (items || []).forEach(function(item){
+    var option = document.createElement("option");
+    option.value = item.code;
+    option.textContent = item.code + (item.label ? " — " + item.label : "");
+    if(item.code.toUpperCase() === current.toUpperCase()){
+      option.selected = true;
+      hasCurrent = true;
+    }
+    select.appendChild(option);
+  });
+
+  if(current && !hasCurrent){
+    var currentOption = document.createElement("option");
+    currentOption.value = current;
+    currentOption.textContent = current + " — " + (unavailableLabel || "valeur actuelle hors liste");
+    currentOption.selected = true;
+    currentOption.dataset.unavailable = "true";
+    select.insertBefore(currentOption, select.firstChild);
+  }
+  if(!current && select.options.length) select.selectedIndex = 0;
+  return select;
+}
+
+function buildYesNoSelect(value, booleanValue){
+  var select = document.createElement("select");
+  var yes = document.createElement("option");
+  var no = document.createElement("option");
+  yes.value = booleanValue ? "true" : "OUI";
+  no.value = booleanValue ? "false" : "NON";
+  yes.textContent = "Oui";
+  no.textContent = "Non";
+  select.appendChild(yes);
+  select.appendChild(no);
+  var isYes = booleanValue
+    ? (value === true || String(value).toLowerCase() === "true")
+    : editorYesNo(value) === "OUI";
+  select.value = isYes ? yes.value : no.value;
+  return select;
+}
+
+function buildFolderField(key, value){
+  var wrapper = document.createElement("div");
+  wrapper.className = "folder-editor-field";
+  var label = document.createElement("label");
+  label.textContent = FOLDER_EDITOR_LABELS[key] || key;
+  label.htmlFor = "folderEditor_" + key;
+  wrapper.appendChild(label);
+
+  var input;
+  var apiItems = apiReferenceItems(key);
+  var staticItems = staticReferenceItems(key);
+
+  if(apiItems !== null && apiItems.length){
+    input = buildReferenceSelect(value, apiItems);
+  }else if(staticItems !== null){
+    input = buildReferenceSelect(value, staticItems);
+  }else if(key === "Morale"){
+    input = buildYesNoSelect(value, true);
+  }else if(FOLDER_EDITOR_STRING_YES_NO[key]){
+    input = buildYesNoSelect(value, false);
+  }else{
+    input = document.createElement("input");
+    if(key === "DateEntree") input.type = "date";
+    else if(key === "NombrePart"){ input.type = "number"; input.step = "1"; }
+    else input.type = "text";
+    input.value = value == null ? "" : String(value);
+  }
+
+  input.id = "folderEditor_" + key;
+  input.dataset.folderField = key;
+  if(FOLDER_EDITOR_READ_ONLY[key]){
+    input.disabled = true;
+    input.title = "Ce champ n’est pas modifiable.";
+    wrapper.classList.add("folder-editor-field-readonly");
+  }
+  wrapper.appendChild(input);
+  return wrapper;
+}
+
+function buildFolderGroup(config, dossier){
+  var group = document.createElement("fieldset");
+  group.className = "folder-editor-group";
+  if(config.fullWidth) group.classList.add("folder-editor-group-full");
+  if(config.area) group.classList.add("folder-editor-group-" + config.area);
+
+  var legend = document.createElement("legend");
+  legend.textContent = config.title;
+  group.appendChild(legend);
+
+  var grid = document.createElement("div");
+  grid.className = "folder-editor-group-grid";
+  config.keys.forEach(function(key){
+    if(Object.prototype.hasOwnProperty.call(dossier,key)){
+      grid.appendChild(buildFolderField(key,dossier[key]));
+    }
+  });
+  group.appendChild(grid);
+  return group;
+}
+
+function refreshFolderEditorTitleSelect(){
+  var oldSelect = folderEditorForm.querySelector('[data-folder-field="CodeTitre"]');
+  if(!oldSelect) return;
+  var value = oldSelect.value;
+  var replacement = buildReferenceSelect(value, apiReferenceItems("CodeTitre"));
+  replacement.id = oldSelect.id;
+  replacement.dataset.folderField = "CodeTitre";
+  oldSelect.replaceWith(replacement);
+}
+
+function renderFolderEditor(){
+  var dossier = currentEditableDossier;
+  if(!dossier) return;
+
+  folderEditorForm.innerHTML = "";
+  folderEditorError.classList.remove("visible");
+  folderEditorSuccess.classList.remove("visible");
+  folderEditorError.textContent = "";
+  folderEditorSuccess.textContent = "";
+
+  var tabs = document.createElement("div");
+  tabs.className = "folder-editor-tabs";
+  tabs.setAttribute("role","tablist");
+  folderEditorForm.appendChild(tabs);
+
+  var rendered = [];
+  FOLDER_EDITOR_SECTIONS.forEach(function(sectionConfig, sectionIndex){
+    var section = document.createElement("section");
+    section.className = "folder-editor-section";
+    section.dataset.folderSection = sectionConfig.title;
+    section.id = "folderEditorSection_" + sectionIndex;
+    section.setAttribute("role","tabpanel");
+
+    var groups = document.createElement("div");
+    groups.className = "folder-editor-groups";
+    sectionConfig.groups.forEach(function(groupConfig){
+      groups.appendChild(buildFolderGroup(groupConfig,dossier));
+    });
+    section.appendChild(groups);
+
+    var tab = document.createElement("button");
+    tab.type = "button";
+    tab.className = "folder-editor-tab";
+    tab.textContent = sectionConfig.title;
+    tab.setAttribute("role","tab");
+    tab.setAttribute("aria-controls",section.id);
+    tab.setAttribute("aria-selected","false");
+    tab.addEventListener("click",function(){
+      tabs.querySelectorAll(".folder-editor-tab").forEach(function(t){
+        t.classList.remove("active");
+        t.setAttribute("aria-selected","false");
+      });
+      folderEditorForm.querySelectorAll(".folder-editor-section").forEach(function(s){
+        s.classList.remove("active");
+      });
+      tab.classList.add("active");
+      tab.setAttribute("aria-selected","true");
+      section.classList.add("active");
+    });
+
+    tabs.appendChild(tab);
+    folderEditorForm.appendChild(section);
+    rendered.push({tab:tab,section:section});
+  });
+
+  if(rendered.length){
+    rendered[0].tab.classList.add("active");
+    rendered[0].tab.setAttribute("aria-selected","true");
+    rendered[0].section.classList.add("active");
+  }
+
+  var morale = folderEditorForm.querySelector('[data-folder-field="Morale"]');
+  if(morale) morale.addEventListener("change",refreshFolderEditorTitleSelect);
+
+  document.getElementById("folderEditorModalTitle").textContent =
+    "Modifier le dossier — " + (dossier.Code || dossier.Nom || "");
+
+  updateFolderEditorFooterState();
+}
+
+function openFolderEditor(){
+  if(!isDossierModificationAllowed() || !currentEditableDossier) return;
+  // Capture l'état exact présenté à l'utilisateur afin de construire ensuite
+  // un PATCH contenant uniquement les propriétés réellement modifiées.
+  folderEditorInitialValues = JSON.parse(JSON.stringify(currentEditableDossier));
+  folderEditorError.textContent = "";
+  folderEditorError.classList.remove("visible");
+  folderEditorSuccess.textContent = "";
+  folderEditorSuccess.classList.remove("visible");
+
+  loadFolderEditorReferences().then(function(){
+    renderFolderEditor();
+    folderEditorModal.classList.add("open");
+    folderEditorModal.setAttribute("aria-hidden","false");
+  });
+}
+
+function setFolderEditorFullscreen(enabled){
+  var fullscreen = !!enabled;
+  folderEditorDialog.classList.toggle("fullscreen",fullscreen);
+  folderEditorModal.classList.toggle("folder-editor-fullscreen",fullscreen);
+  folderEditorFullscreenButton.setAttribute("aria-pressed",fullscreen ? "true" : "false");
+  folderEditorFullscreenButton.setAttribute("aria-label",fullscreen ? "Quitter la pleine page" : "Passer en pleine page");
+  folderEditorFullscreenButton.title = fullscreen ? "Quitter la pleine page" : "Passer en pleine page";
+  folderEditorFullscreenButton.textContent = fullscreen ? "❐" : "⛶";
+}
+function closeFolderEditor(){
+  setFolderEditorFullscreen(false);
+  folderEditorModal.classList.remove("open");
+  folderEditorModal.setAttribute("aria-hidden","true");
+  folderEditorError.classList.remove("visible");
+  folderEditorSuccess.classList.remove("visible");
+}
+
+function collectFolderEditorValues(){
+  if(!currentEditableDossier) return {updated:null,errors:["Aucun dossier chargé."]};
+  var updated = {};
+  var errors = [];
+
+  folderEditorForm.querySelectorAll("[data-folder-field]").forEach(function(input){
+    var key = input.dataset.folderField;
+    if(FOLDER_EDITOR_READ_ONLY[key]){
+      updated[key] = currentEditableDossier[key];
+      return;
+    }
+    if(key === "Morale"){
+      updated[key] = input.value === "true";
+      return;
+    }
+    if(key === "NombrePart"){
+      var n = Number(input.value);
+      if(!Number.isFinite(n)) errors.push("Nombre de parts invalide.");
+      else updated[key] = n;
+      return;
+    }
+    updated[key] = input.value;
+  });
+
+  ["CodeSociete","CodeGenre","CodeTitre"].forEach(function(key){
+    var items = apiReferenceItems(key);
+    if(items && items.length){
+      var value = editorText(updated[key]).toUpperCase();
+      var found = items.some(function(item){ return item.code.toUpperCase() === value; });
+      if(!found){
+        errors.push(
+          key === "CodeSociete" ? "Le Cabinet doit être choisi dans la liste." :
+          key === "CodeGenre" ? "Le Genre doit être choisi dans la liste." :
+          "Le Titre doit correspondre au type de personne."
+        );
+      }
+    }
+  });
+  return {updated:updated,errors:errors};
+}
+
+function buildPatchPayload(updated){
+  var payload = {};
+  var initial = folderEditorInitialValues || currentEditableDossier || {};
+
+  Object.keys(updated).forEach(function(key){
+    // Code et CodeCompta restent affichés mais ne doivent jamais être envoyés
+    // puisqu'ils sont volontairement non modifiables dans l'interface.
+    if(FOLDER_EDITOR_READ_ONLY[key]) return;
+
+    var before = initial[key];
+    var after = updated[key];
+    if(JSON.stringify(before) !== JSON.stringify(after)){
+      payload[key] = after;
+    }
+  });
+
+  return payload;
+}
+
+function updateFolderEditorFooterState(){
+  var hasChanges = false;
+
+  if(currentEditableDossier && folderEditorInitialValues){
+    var values = collectFolderEditorValues();
+    if(values && values.updated){
+      hasChanges = Object.keys(buildPatchPayload(values.updated)).length > 0;
+    }
+  }
+
+  folderEditorCloseButton.classList.toggle("hidden", hasChanges);
+  folderEditorCancelButton.classList.toggle("hidden", !hasChanges);
+  folderEditorSaveButton.classList.toggle("hidden", !hasChanges);
+
+  if(!hasChanges && folderEditorSuccess.textContent === "Aucune modification à enregistrer."){
+    folderEditorSuccess.textContent = "";
+    folderEditorSuccess.classList.remove("visible");
+  }
+}
+
+function saveFolderEditor(){
+  var values = collectFolderEditorValues();
+  if(values.errors.length){
+    folderEditorError.textContent = values.errors.join(" ");
+    folderEditorError.classList.add("visible");
+    return;
+  }
+
+  var payload = buildPatchPayload(values.updated);
+  var keys = Object.keys(payload);
+  if(!keys.length){
+    folderEditorSuccess.textContent = "";
+    folderEditorSuccess.classList.remove("visible");
+    updateFolderEditorFooterState();
+    return;
+  }
+
+  var ctx = getContext();
+  var code = currentEditableDossier.Code;
+  if(!ctx.apiUrl || !(lastValidUuid || ctx.uuid) || !code){
+    folderEditorError.textContent = "Contexte API incomplet.";
+    folderEditorError.classList.add("visible");
+    return;
+  }
+
+  folderEditorSaveButton.classList.add("saving");
+  folderEditorSaveButton.disabled = true;
+  folderEditorError.classList.remove("visible");
+  folderEditorSuccess.classList.remove("visible");
+
+  var patchHeaders = dossierApiHeaders("application/json-patch+json");
+  patchHeaders["Accept"] = "text/plain";
+
+  fetch(normalize(ctx.apiUrl) + "/v1/dossiers/" + encodeURIComponent(code), {
+    method:"PATCH",
+    headers:patchHeaders,
+    body:JSON.stringify(payload)
+  })
+  .then(function(r){ return r.text().then(function(t){ return {ok:r.ok,status:r.status,text:t}; }); })
+  .then(function(res){
+    if(!res.ok) throw new Error("HTTP " + res.status + (res.text ? " — " + res.text : ""));
+
+    // N'intègre localement que les propriétés réellement envoyées dans le PATCH.
+    // Le rechargement qui suit reste la source de vérité finale.
+    Object.keys(payload).forEach(function(key){ currentEditableDossier[key] = payload[key]; });
+    folderEditorInitialValues = JSON.parse(JSON.stringify(currentEditableDossier));
+
+    folderEditorSuccess.textContent =
+      "Dossier mis à jour avec succès — " + keys.length +
+      " champ" + (keys.length > 1 ? "s" : "") + " modifié" + (keys.length > 1 ? "s" : "") + ".";
+    folderEditorSuccess.classList.add("visible");
+
+    // Recharge le dossier courant puis la fiche complète /v1/dossiers/{code}
+    // afin d'afficher immédiatement les valeurs réellement enregistrées par ACD.
+    return fetchInfosDossier().then(function(){ setTimeout(closeFolderEditor,700); });
+  })
+  .catch(function(err){
+    folderEditorError.textContent = "Mise à jour impossible : " + (err && err.message ? err.message : String(err));
+    folderEditorError.classList.add("visible");
+  })
+  .finally(function(){
+    folderEditorSaveButton.classList.remove("saving");
+    folderEditorSaveButton.disabled = false;
+  });
+}
+
+
+/* ---------- SSO call ---------- */
+function getContext(){
+  return {
+    apiUrl: apiUrl,
+    uuid: uuidValid ? uuid : null,
+    xClientIp: document.getElementById("xClientIp").value.trim(),
+    sendXClientIp: document.getElementById("useXClientIp").checked
+  };
+}
+
+var autoTriggered = false;
+var autoTestDone = false;
+var lastValidUuid = null;
+var lastSsoPayload = null;
+
+function maybeAutoTest(){
+  if(autoTestDone) return;
+  if(apiUrl && cnx && uuidValid){
+    autoTestDone = true;
+    autoTriggered = true;
+    showAutoBadge();
+    testSSO();
+  }
+}
+
+function testSSO(){
+  var ctx = getContext();
+  var title = document.getElementById("resultTitle");
+
+  title.innerHTML = "";
+  setRawResult("");
+  document.getElementById("resultFormatted").classList.add("hidden");
+  document.getElementById("dossierSwitcher").classList.add("hidden");
+  resetInfosDossier();
+  resetComptaDossier();
+  resetDossierStatus();
+
+  if(!ctx.apiUrl){
+    title.innerHTML = "<span class='err'>URL API non disponible</span>";
+    setSsoUiState(false);
+    return;
+  }
+  if(!ctx.uuid){
+    title.innerHTML = "<span class='err'>UUID invalide</span>";
+    setSsoUiState(false);
+    return;
+  }
+
+  var headers = {
+    "accept":"text/plain",
+    "Content-Type":"application/json-patch+json"
+  };
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    headers["X-CLIENT-IP"] = ctx.xClientIp;
+  }
+
+  fetch(normalize(ctx.apiUrl) + "/v1/authentification/uuid",{
+    method:"POST",
+    headers: headers,
+    body: JSON.stringify({UUID: ctx.uuid})
+  })
+  .then(function(r){
+    return r.text().then(function(t){
+      return {ok:r.ok,status:r.status,text:t};
+    });
+  })
+  .then(function(res){
+    setRawResult(res.text);
+
+    if(!res.ok){
+      lastValidUuid = null;
+      lastSsoPayload = null;
+      title.innerHTML = "<span class='err'>Erreur HTTP " + res.status + "</span>";
+      setSsoUiState(false);
+      resetInfosDossier();
+      resetComptaDossier();
+      return;
+    }
+
+    title.innerHTML = "";
+    setSsoUiState(true);
+
+    try{
+      var parsed = JSON.parse(res.text);
+      lastSsoPayload = parsed;
+      lastValidUuid = (parsed && parsed.UUID) ? parsed.UUID : ctx.uuid;
+      renderSsoResult(parsed);
+    }catch(e){
+      document.getElementById("resultFormatted").classList.add("hidden");
+      resetInfosDossier();
+      resetComptaDossier();
+    }
+
+    if(autoTriggered){
+      setTimeout(hideAutoBadge, 2000);
+    }
+  })
+  .catch(function(e){
+    lastValidUuid = null;
+    lastSsoPayload = null;
+    title.innerHTML = "<span class='err'>Erreur réseau / CORS</span>";
+    setSsoUiState(false);
+    setRawResult(e.message);
+    resetInfosDossier();
+    document.getElementById("resultFormatted").classList.add("hidden");
+    document.getElementById("dossierSwitcher").classList.add("hidden");
+  });
+}
+
+/* ---------- Swagger + Curl ---------- */
+function openSwagger(){
+  if(!apiUrl) return;
+  window.open(normalize(apiUrl) + "/swagger/index.html", "_blank");
+}
+
+function copyCurl(){
+  var ctx = getContext();
+  if(!ctx.apiUrl || !ctx.uuid) return;
+
+  var curl = "curl -X 'POST' \\\n" +
+    "  '"+normalize(ctx.apiUrl)+"/v1/authentification/uuid' \\\n" +
+    "  -H 'accept: text/plain' \\\n";
+
+  if(ctx.sendXClientIp && ctx.xClientIp){
+    curl += "  -H 'X-CLIENT-IP: "+ctx.xClientIp+"' \\\n";
+  }
+
+  curl += "  -H 'Content-Type: application/json-patch+json' \\\n" +
+    "  -d '{\n  \"UUID\": \""+ctx.uuid+"\"\n}'";
+
+  copyText(curl, "curlCopied");
+}
+
+/* ---------- Events ---------- */
+document.getElementById("btnTest").addEventListener("click", testSSO);
+document.getElementById("btnSwagger").addEventListener("click", openSwagger);
+document.getElementById("btnCurl").addEventListener("click", copyCurl);
+
+document.getElementById("btnCopyUuid").addEventListener("click", function(){
+  if(uuidValid) copyText(uuid, "uuidCopied");
+});
+
+document.getElementById("btnCopyPortal").addEventListener("click", function(){
+  if(portalUrl) copyText(portalUrl, "portalCopied");
+});
+
+document.getElementById("btnPortal").addEventListener("click", function(){
+  if(portalUrl) window.open(portalUrl, "_blank");
+});
+
+document.getElementById("btnCopyJson").addEventListener("click", function(){
+  if(!lastPrettyJsonText) return;
+  copyText(lastPrettyJsonText, "jsonCopied");
+});
+
+document.getElementById("allowDossierModification").addEventListener("change", function(){
+  updateEditDossierButtonVisibility();
+  if(!isDossierModificationAllowed() && folderEditorModal.classList.contains("open")){
+    closeFolderEditor();
+  }
+});
+
+document.getElementById("btnEditDossier").addEventListener("click", openFolderEditor);
+document.getElementById("folderEditorModalClose").addEventListener("click", closeFolderEditor);
+folderEditorCloseButton.addEventListener("click", closeFolderEditor);
+folderEditorCancelButton.addEventListener("click", closeFolderEditor);
+folderEditorSaveButton.addEventListener("click", saveFolderEditor);
+folderEditorForm.addEventListener("input", updateFolderEditorFooterState);
+folderEditorForm.addEventListener("change", updateFolderEditorFooterState);
+document.getElementById("folderEditorFullscreenButton").addEventListener("click", function(){
+  setFolderEditorFullscreen(!folderEditorDialog.classList.contains("fullscreen"));
+});
+folderEditorModal.addEventListener("click", function(ev){
+  if(ev.target === folderEditorModal) closeFolderEditor();
+});
+document.addEventListener("keydown", function(ev){
+  if(ev.key === "Escape" && folderEditorModal.classList.contains("open")) closeFolderEditor();
+});
+
+document.getElementById("btnChangeDossier").addEventListener("click", changeDossier);
+document.getElementById("codeDossier").addEventListener("keydown", function(e){
+  if(e.key === "Enter"){
+    e.preventDefault();
+    changeDossier();
+  }
+});
+
+[manualReferrerInput, manualCnxInput, manualUuidInput].forEach(function(input){
+  input.addEventListener("input", function(){
+    refreshContextDisplay();
+  });
+});
+
+/* ---------- IP (ipify) then auto-test ---------- */
+document.getElementById("browserIp").textContent = "Chargement...";
+fetch("https://api.ipify.org?format=json")
+.then(function(r){ return r.json(); })
+.then(function(d){
+  document.getElementById("browserIp").textContent = d.ip + " (ipify)";
+  document.getElementById("xClientIp").value = d.ip;
+  maybeAutoTest();
+})
+.catch(function(){
+  document.getElementById("browserIp").textContent = "Non disponible";
+  maybeAutoTest();
+});
+
+
+const btnToggleParametrage = document.getElementById('btnToggleParametrage');
+const panelParametrage = document.getElementById('panelParametrage');
+const ssoStateBadge = document.getElementById('ssoStateBadge');
+
+function setParametragePanel(open){
+  panelParametrage.classList.toggle('hidden', !open);
+  btnToggleParametrage.classList.toggle('open', open);
+  btnToggleParametrage.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+  var zoneResultat = document.getElementById('zoneResultat');
+  if(zoneResultat){
+    zoneResultat.style.display = open ? 'none' : 'block';
+  }
+}
+
+function setSsoUiState(isValid){
+  btnToggleParametrage.classList.remove('sso-ok','sso-ko');
+  ssoStateBadge.classList.remove('ok','ko');
+
+  if(isValid){
+    btnToggleParametrage.classList.add('sso-ok');
+    ssoStateBadge.classList.add('ok');
+    ssoStateBadge.textContent = 'SSO OK';
+    setParametragePanel(false);
+  }else{
+    btnToggleParametrage.classList.add('sso-ko');
+    ssoStateBadge.classList.add('ko');
+    ssoStateBadge.textContent = 'SSO KO';
+    setParametragePanel(true);
+  }
+}
+
+btnToggleParametrage.addEventListener('click', () => {
+  setParametragePanel(panelParametrage.classList.contains('hidden'));
+});
+
+setSsoUiState(false);
+
+})();
+</script>
+
+</body>
+</html>
